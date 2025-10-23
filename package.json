@@ -1,16 +1,79 @@
 {
   "name": "@ldesign/player",
-  "version": "0.1.0",
-  "description": "音频播放器 - 波形显示、播放列表、歌词同步",
-  "keywords": ["ldesign", "audio", "player", "music"],
+  "version": "0.2.0",
+  "description": "音视频播放器 - 支持波形、歌词、均衡器、多框架",
+  "keywords": [
+    "ldesign",
+    "audio",
+    "video",
+    "player",
+    "music",
+    "waveform",
+    "lyrics",
+    "equalizer",
+    "media-player"
+  ],
   "author": "LDesign Team",
   "license": "MIT",
   "type": "module",
-  "main": "./lib/index.cjs",
-  "module": "./es/index.js",
-  "scripts": {"build": "ldesign-builder build -f esm,cjs,dts"},
-  "dependencies": {"@ldesign/shared": "workspace:*"},
-  "devDependencies": {"@ldesign/builder": "workspace:*", "typescript": "^5.7.3"}
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.esm.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/index.umd.min.js",
+  "jsdelivr": "./dist/index.umd.min.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.cjs.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./vue": {
+      "import": "./dist/vue.esm.js",
+      "require": "./dist/vue.cjs.js",
+      "types": "./dist/vue.d.ts"
+    },
+    "./react": {
+      "import": "./dist/react.esm.js",
+      "require": "./dist/react.cjs.js",
+      "types": "./dist/react.d.ts"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "ldesign-builder build --watch",
+    "build": "ldesign-builder build -f esm,cjs,dts",
+    "build:prod": "NODE_ENV=production ldesign-builder build",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ldesign/shared": "workspace:*",
+    "howler": "^2.2.4"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0",
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@ldesign/builder": "workspace:*",
+    "@types/howler": "^2.2.11",
+    "typescript": "^5.7.3",
+    "vitest": "^1.2.1"
+  }
 }
 
 

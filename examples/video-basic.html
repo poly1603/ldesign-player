@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频播放器 - 基础示例</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #1890ff;
+    }
+
+    #videoContainer {
+      width: 100%;
+      max-width: 800px;
+      margin: 20px auto;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .controls {
+      margin: 20px 0;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #f5f5f5;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🎬 视频播放器 - 基础示例</h1>
+
+  <div id="videoContainer"></div>
+
+  <div class="controls">
+    <button id="playBtn">播放</button>
+    <button id="pauseBtn">暂停</button>
+    <button id="fullscreenBtn">全屏</button>
+    <button id="pipBtn">画中画</button>
+    <button id="screenshotBtn">截图</button>
+  </div>
+
+  <div class="controls">
+    <label>音量: <input type="range" id="volumeSlider" min="0" max="100" value="100"></label>
+    <button id="muteBtn">静音</button>
+  </div>
+
+  <div class="controls">
+    <label>播放速率:
+      <select id="rateSelect">
+        <option value="0.5">0.5x</option>
+        <option value="0.75">0.75x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2x</option>
+      </select>
+    </label>
+  </div>
+
+  <script type="module">
+    import { createVideoPlayer } from '../src/index.ts';
+
+    // 创建视频播放器
+    const player = createVideoPlayer('#videoContainer', {
+      src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      poster: 'https://peach.blender.org/wp-content/uploads/title_anouncement.jpg',
+      controls: true,
+      autoplay: false,
+    });
+
+    // 播放控制
+    document.getElementById('playBtn').addEventListener('click', () => player.play());
+    document.getElementById('pauseBtn').addEventListener('click', () => player.pause());
+
+    // 全屏
+    document.getElementById('fullscreenBtn').addEventListener('click', () => {
+      player.toggleFullscreen();
+    });
+
+    // 画中画
+    document.getElementById('pipBtn').addEventListener('click', () => {
+      player.togglePictureInPicture();
+    });
+
+    // 截图
+    document.getElementById('screenshotBtn').addEventListener('click', () => {
+      const dataUrl = player.screenshot();
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `screenshot-${Date.now()}.png`;
+      link.click();
+    });
+
+    // 音量控制
+    const volumeSlider = document.getElementById('volumeSlider');
+    volumeSlider.addEventListener('input', (e) => {
+      const vol = e.target.value / 100;
+      player.setVolume(vol);
+    });
+
+    document.getElementById('muteBtn').addEventListener('click', () => {
+      if (player.isMuted()) {
+        player.unmute();
+      } else {
+        player.mute();
+      }
+    });
+
+    // 播放速率
+    document.getElementById('rateSelect').addEventListener('change', (e) => {
+      const rate = parseFloat(e.target.value);
+      player.setPlaybackRate(rate);
+    });
+
+    // 监听事件
+    player.on('play', () => console.log('播放开始'));
+    player.on('pause', () => console.log('播放暂停'));
+    player.on('timeupdate', ({ currentTime, duration }) => {
+      console.log(`进度: ${currentTime.toFixed(2)}s / ${duration.toFixed(2)}s`);
+    });
+  </script>
+</body>
+
+</html>

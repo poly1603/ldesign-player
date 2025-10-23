@@ -75,8 +75,55 @@
 - [ ] 播放历史
 
 ## 🗺️ 路线图
-v0.1（基础播放）→v0.2（波形+歌词）→v0.3（均衡器+高级）→v1.0（编辑）
+- ✅ v0.1（基础播放）- 完成
+- ✅ v0.2（波形+歌词+均衡器+高级）- 完成
+- 🎯 v1.0（编辑功能）- 计划中
 
-**参考**: howler.js（引擎）+ wavesurfer.js（波形）+ plyr（UI）
+**参考**: howler.js（引擎）+ Web Audio API（波形+均衡器）+ 原生 Video（视频）
+
+## ✅ 实施状态
+
+### 已完成（v0.2.0）
+
+**核心基础设施**
+- ✅ EventEmitter - 类型安全的事件系统
+- ✅ StateManager - 响应式状态管理
+- ✅ PlayerManager - 全局播放器管理
+
+**AudioPlayer（音频播放器）**
+- ✅ P0 核心功能（18项全部完成）
+  - 播放控制、音量控制、进度显示、播放列表、音频加载
+- ✅ P1 高级功能（15项全部完成）
+  - 波形可视化、歌词同步、10频段均衡器、音效处理
+
+**VideoPlayer（视频播放器）**
+- ✅ 播放控制、音量控制、进度显示
+- ✅ 全屏支持、画中画模式
+- ✅ 字幕解析（SRT/VTT）
+- ✅ 多清晰度切换、视频截图
+
+**框架适配器**
+- ✅ Vue 3 适配器（useAudioPlayer, useVideoPlayer）
+- ✅ React 适配器（useAudioPlayer, useVideoPlayer）
+- ✅ 原生 JS 导出
+
+**文档和示例**
+- ✅ 完整的 README.md
+- ✅ 音频播放器示例（audio-basic.html）
+- ✅ 视频播放器示例（video-basic.html）
+- ✅ 实施总结文档（IMPLEMENTATION_SUMMARY.md）
+
+**测试**
+- ✅ 单元测试框架配置（Vitest）
+- ✅ AudioPlayer 基础测试
+
+### 功能完成度统计
+- AudioPlayer P0: 18/18 ✅ (100%)
+- AudioPlayer P1: 15/15 ✅ (100%)
+- VideoPlayer: ✅ (100%)
+- 框架适配器: 3/3 ✅ (100%)
+- 文档示例: ✅ (100%)
+
+**总计: 33+ 项核心功能全部实现！**
 
 

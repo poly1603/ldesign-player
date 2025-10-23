@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@ldesign/player - 完整演示</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .header p {
+      font-size: 20px;
+      opacity: 0.9;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .demo-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .demo-card h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .demo-card h3 {
+      color: #333;
+      margin: 20px 0 12px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .player-container {
+      margin: 16px 0;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: #667eea;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: #6c757d;
+      box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+    }
+
+    button.secondary:hover {
+      background: #5a6268;
+    }
+
+    button.success {
+      background: #28a745;
+      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    button.success:hover {
+      background: #218838;
+    }
+
+    .info-box {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .info-box strong {
+      color: #667eea;
+      display: inline-block;
+      min-width: 120px;
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: #e9ecef;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #667eea;
+      cursor: pointer;
+      border: none;
+    }
+
+    .slider-label {
+      min-width: 80px;
+      text-align: right;
+      font-weight: 500;
+      color: #495057;
+    }
+
+    #waveformCanvas {
+      width: 100%;
+      height: 120px;
+      border-radius: 8px;
+      background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+      cursor: pointer;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    #videoContainer {
+      width: 100%;
+      max-width: 100%;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .playlist {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .playlist-item {
+      padding: 12px;
+      margin: 4px 0;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .playlist-item:hover {
+      background: #e7f3ff;
+      transform: translateX(4px);
+    }
+
+    .playlist-item.active {
+      background: #667eea;
+      color: white;
+      font-weight: 500;
+    }
+
+    .playlist-item-index {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .playlist-item.active .playlist-item-index {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .lyrics-container {
+      max-height: 250px;
+      overflow-y: auto;
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .lyric-line {
+      padding: 8px 12px;
+      margin: 4px 0;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      color: #6c757d;
+    }
+
+    .lyric-line:hover {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .lyric-line.active {
+      background: linear-gradient(to right, #667eea, #764ba2);
+      color: white;
+      font-weight: 500;
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    .feature-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: #e7f3ff;
+      color: #667eea;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge.success {
+      background: #d4edda;
+      color: #28a745;
+    }
+
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #667eea;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #5568d3;
+    }
+
+    @media (max-width: 768px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 32px;
+      }
+
+      .header p {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎵 @ldesign/player</h1>
+      <p>功能强大的音视频播放器 - 完整演示</p>
+      <div class="feature-badges">
+        <span class="badge success">✅ 33+ 项功能</span>
+        <span class="badge success">✅ 框架无关</span>
+        <span class="badge success">✅ TypeScript</span>
+        <span class="badge success">✅ 波形可视化</span>
+        <span class="badge success">✅ 歌词同步</span>
+        <span class="badge success">✅ 10频段均衡器</span>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <!-- 音频播放器 -->
+      <div class="demo-card">
+        <h2>🎵 音频播放器</h2>
+
+        <h3>播放控制</h3>
+        <div class="controls">
+          <button id="audioPlay">▶ 播放</button>
+          <button id="audioPause" class="secondary">⏸ 暂停</button>
+          <button id="audioStop" class="secondary">⏹ 停止</button>
+          <button id="audioPrev" class="secondary">⏮ 上一首</button>
+          <button id="audioNext" class="secondary">⏭ 下一首</button>
+        </div>
+
+        <h3>音量控制</h3>
+        <div class="slider-group">
+          <span class="slider-label">音量:</span>
+          <input type="range" id="volumeSlider" min="0" max="100" value="100">
+          <span id="volumeValue">100%</span>
+          <button id="muteBtn" class="secondary">🔇 静音</button>
+        </div>
+
+        <h3>进度控制</h3>
+        <div class="slider-group">
+          <span class="slider-label">进度:</span>
+          <input type="range" id="progressSlider" min="0" max="100" value="0">
+          <span id="timeDisplay">00:00 / 00:00</span>
+        </div>
+
+        <h3>播放状态</h3>
+        <div class="info-box" id="audioStatus">
+          <div><strong>状态:</strong> <span id="playState">空闲</span></div>
+          <div><strong>当前歌曲:</strong> <span id="currentTrack">无</span></div>
+          <div><strong>循环模式:</strong> <span id="loopMode">列表循环</span></div>
+        </div>
+
+        <h3>播放速率</h3>
+        <div class="controls">
+          <button class="secondary" data-rate="0.5">0.5x</button>
+          <button class="secondary" data-rate="0.75">0.75x</button>
+          <button class="success" data-rate="1">1x</button>
+          <button class="secondary" data-rate="1.25">1.25x</button>
+          <button class="secondary" data-rate="1.5">1.5x</button>
+          <button class="secondary" data-rate="2">2x</button>
+        </div>
+
+        <h3>循环模式</h3>
+        <div class="controls">
+          <button class="secondary" data-loop="none">不循环</button>
+          <button class="secondary" data-loop="single">单曲循环</button>
+          <button class="success" data-loop="list">列表循环</button>
+          <button class="secondary" data-loop="random">随机播放</button>
+        </div>
+
+        <h3>播放列表</h3>
+        <div class="playlist" id="playlist"></div>
+      </div>
+
+      <!-- 高级音频功能 -->
+      <div class="demo-card">
+        <h2>⚡ 高级音频功能</h2>
+
+        <h3>波形可视化</h3>
+        <canvas id="waveformCanvas"></canvas>
+        <div class="controls" style="margin-top: 12px;">
+          <button id="waveformToggle" class="success">🌊 显示波形</button>
+          <button id="frequencyToggle" class="secondary">📊 显示频谱</button>
+        </div>
+
+        <h3>歌词同步</h3>
+        <div class="lyrics-container" id="lyricsContainer">
+          <div style="text-align: center; color: #6c757d;">暂无歌词</div>
+        </div>
+
+        <h3>均衡器预设</h3>
+        <div class="controls">
+          <button class="success" data-eq="flat">🎚 平坦</button>
+          <button class="secondary" data-eq="rock">🎸 摇滚</button>
+          <button class="secondary" data-eq="pop">🎤 流行</button>
+          <button class="secondary" data-eq="jazz">🎷 爵士</button>
+          <button class="secondary" data-eq="classical">🎻 古典</button>
+          <button class="secondary" data-eq="bass-boost">🔊 重低音</button>
+        </div>
+
+        <h3>音效处理</h3>
+        <div class="controls">
+          <button id="fadeInBtn" class="secondary">📈 淡入</button>
+          <button id="fadeOutBtn" class="secondary">📉 淡出</button>
+        </div>
+      </div>
+
+      <!-- 视频播放器 -->
+      <div class="demo-card">
+        <h2>🎬 视频播放器</h2>
+
+        <div id="videoContainer" style="margin: 16px 0;"></div>
+
+        <h3>播放控制</h3>
+        <div class="controls">
+          <button id="videoPlay">▶ 播放</button>
+          <button id="videoPause" class="secondary">⏸ 暂停</button>
+          <button id="videoStop" class="secondary">⏹ 停止</button>
+        </div>
+
+        <h3>视频控制</h3>
+        <div class="controls">
+          <button id="fullscreenBtn" class="secondary">⛶ 全屏</button>
+          <button id="pipBtn" class="secondary">📺 画中画</button>
+          <button id="screenshotBtn" class="success">📷 截图</button>
+        </div>
+
+        <h3>音量控制</h3>
+        <div class="slider-group">
+          <span class="slider-label">音量:</span>
+          <input type="range" id="videoVolumeSlider" min="0" max="100" value="100">
+          <span id="videoVolumeValue">100%</span>
+          <button id="videoMuteBtn" class="secondary">🔇 静音</button>
+        </div>
+
+        <h3>播放速率</h3>
+        <div class="controls">
+          <button class="secondary" data-video-rate="0.5">0.5x</button>
+          <button class="success" data-video-rate="1">1x</button>
+          <button class="secondary" data-video-rate="1.5">1.5x</button>
+          <button class="secondary" data-video-rate="2">2x</button>
+        </div>
+
+        <h3>视频状态</h3>
+        <div class="info-box" id="videoStatus">
+          <div><strong>状态:</strong> <span id="videoPlayState">空闲</span></div>
+          <div><strong>时间:</strong> <span id="videoTime">00:00 / 00:00</span></div>
+          <div><strong>分辨率:</strong> <span id="videoResolution">-</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+
+</html>
