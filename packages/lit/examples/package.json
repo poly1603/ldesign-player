@@ -1,0 +1,19 @@
+{
+  "name": "@ldesign/player-lit-examples",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ldesign/player-core": "workspace:*",
+    "@ldesign/player-lit": "workspace:*",
+    "lit": "^3.1.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "name": "@ldesign/player-vue",
+  "version": "0.2.0",
+  "description": "Vue 3 音视频播放器组件",
+  "keywords": [
+    "ldesign",
+    "vue",
+    "vue3",
+    "audio",
+    "video",
+    "player",
+    "component"
+  ],
+  "author": "LDesign Team",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
+    },
+    "./composables/*": {
+      "types": "./es/composables/*.d.ts",
+      "import": "./es/composables/*.js",
+      "require": "./lib/composables/*.cjs"
+    },
+    "./es/components/AudioPlayer.vue.css": "./es/components/AudioPlayer.vue.css",
+    "./es/components/VideoPlayer.vue.css": "./es/components/VideoPlayer.vue.css",
+    "./es/index.css": "./es/index.css",
+    "./lib/components/AudioPlayer.vue.css": "./lib/components/AudioPlayer.vue.css",
+    "./lib/components/VideoPlayer.vue.css": "./lib/components/VideoPlayer.vue.css",
+    "./lib/index.css": "./lib/index.css",
+    "./dist/index.css": "./dist/index.css",
+    "./dist/index.min.css": "./dist/index.min.css"
+  },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "es",
+    "lib",
+    "dist"
+  ],
+  "scripts": {
+    "dev": "node ../../../../tools/builder/bin/cli.js build --watch",
+    "build": "node ../../../../tools/builder/bin/cli.js build",
+    "build:prod": "cross-env NODE_ENV=production node ../../../../tools/builder/bin/cli.js build",
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint src --ext .ts,.vue",
+    "test": "vitest run",
+    "clean": "rimraf dist es lib"
+  },
+  "dependencies": {
+    "@ldesign/player-core": "workspace:*",
+    "@ldesign/shared": "workspace:*"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/compiler-sfc": "^3.4.0",
+    "typescript": "^5.7.3",
+    "vitest": "^1.2.1",
+    "vue": "^3.4.0",
+    "vue-tsc": "^2.0.0",
+    "rimraf": "^5.0.5"
+  }
+}

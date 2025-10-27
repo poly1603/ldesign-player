@@ -1,0 +1,87 @@
+{
+  "name": "@ldesign/player-core",
+  "version": "0.2.0",
+  "description": "音视频播放器核心功能库",
+  "keywords": [
+    "ldesign",
+    "audio",
+    "video",
+    "player",
+    "media",
+    "waveform",
+    "lyrics",
+    "equalizer"
+  ],
+  "author": "LDesign Team",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
+    },
+    "./audio/*": {
+      "types": "./es/audio/*.d.ts",
+      "import": "./es/audio/*.js",
+      "require": "./lib/audio/*.cjs"
+    },
+    "./core/*": {
+      "types": "./es/core/*.d.ts",
+      "import": "./es/core/*.js",
+      "require": "./lib/core/*.cjs"
+    },
+    "./types": {
+      "types": "./es/types/index.d.ts",
+      "import": "./es/types/index.js",
+      "require": "./lib/types/index.cjs"
+    },
+    "./types/*": {
+      "types": "./es/types/*.d.ts",
+      "import": "./es/types/*.js",
+      "require": "./lib/types/*.cjs"
+    },
+    "./utils/*": {
+      "types": "./es/utils/*.d.ts",
+      "import": "./es/utils/*.js",
+      "require": "./lib/utils/*.cjs"
+    },
+    "./video/*": {
+      "types": "./es/video/*.d.ts",
+      "import": "./es/video/*.js",
+      "require": "./lib/video/*.cjs"
+    }
+  },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "es",
+    "lib",
+    "dist"
+  ],
+  "scripts": {
+    "dev": "node ../../../../tools/builder/bin/cli.js build --watch",
+    "build": "node ../../../../tools/builder/bin/cli.js build",
+    "build:prod": "cross-env NODE_ENV=production node ../../../../tools/builder/bin/cli.js build",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "clean": "rimraf dist es lib"
+  },
+  "dependencies": {
+    "@ldesign/shared": "workspace:*",
+    "howler": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/howler": "^2.2.11",
+    "typescript": "^5.7.3",
+    "vitest": "^1.2.1",
+    "rimraf": "^5.0.5"
+  }
+}

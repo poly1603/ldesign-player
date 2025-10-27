@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音频播放器示例 - @ldesign/player-core</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .player-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .waveform {
+      height: 150px;
+      background: #f5f5f5;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn.pause {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .progress-container {
+      margin-bottom: 20px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .progress {
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .volume-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .volume-slider {
+      flex: 1;
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .volume-bar {
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 3px;
+      width: 80%;
+    }
+
+    .playlist {
+      border-top: 1px solid #e0e0e0;
+      padding-top: 20px;
+    }
+
+    .playlist h3 {
+      color: #666;
+      margin-bottom: 15px;
+    }
+
+    .playlist-item {
+      padding: 12px;
+      background: #f8f8f8;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .playlist-item:hover {
+      background: #e8e8e8;
+    }
+
+    .playlist-item.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .equalizer {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .equalizer h3 {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .eq-bands {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .eq-band {
+      flex: 1;
+      text-align: center;
+    }
+
+    .eq-slider {
+      width: 100%;
+      transform: rotate(-90deg);
+      transform-origin: center;
+      margin: 40px 0;
+    }
+
+    .eq-label {
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="player-container">
+    <h1>🎵 音频播放器演示</h1>
+
+    <div class="waveform" id="waveform">
+      <canvas id="waveform-canvas"></canvas>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress" id="progress"></div>
+      </div>
+      <div class="time-display">
+        <span id="current-time">0:00</span>
+        <span id="duration">0:00</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="prev-btn">⏮️ 上一首</button>
+      <button class="btn" id="play-btn">▶️ 播放</button>
+      <button class="btn" id="next-btn">下一首 ⏭️</button>
+    </div>
+
+    <div class="volume-container">
+      <span>🔊 音量</span>
+      <div class="volume-slider" id="volume-slider">
+        <div class="volume-bar" id="volume-bar"></div>
+      </div>
+      <span id="volume-value">80%</span>
+    </div>
+
+    <div class="playlist">
+      <h3>播放列表</h3>
+      <div class="playlist-item active">🎵 示例音频 1 - 轻音乐</div>
+      <div class="playlist-item">🎵 示例音频 2 - 流行音乐</div>
+      <div class="playlist-item">🎵 示例音频 3 - 古典音乐</div>
+    </div>
+
+    <div class="equalizer">
+      <h3>均衡器</h3>
+      <div class="eq-bands">
+        <div class="eq-band">
+          <input type="range" class="eq-slider" min="-12" max="12" value="0">
+          <div class="eq-label">60Hz</div>
+        </div>
+        <div class="eq-band">
+          <input type="range" class="eq-slider" min="-12" max="12" value="0">
+          <div class="eq-label">230Hz</div>
+        </div>
+        <div class="eq-band">
+          <input type="range" class="eq-slider" min="-12" max="12" value="0">
+          <div class="eq-label">910Hz</div>
+        </div>
+        <div class="eq-band">
+          <input type="range" class="eq-slider" min="-12" max="12" value="0">
+          <div class="eq-label">3kHz</div>
+        </div>
+        <div class="eq-band">
+          <input type="range" class="eq-slider" min="-12" max="12" value="0">
+          <div class="eq-label">14kHz</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // 这里将导入 @ldesign/player-core
+    // import { AudioPlayer, WaveformRenderer, Equalizer, PlaylistManager } from '@ldesign/player-core'
+
+    // 模拟播放器功能
+    let isPlaying = false;
+    let currentTime = 0;
+    let duration = 180; // 3分钟
+
+    const playBtn = document.getElementById('play-btn');
+    const progressBar = document.getElementById('progress');
+    const currentTimeEl = document.getElementById('current-time');
+    const durationEl = document.getElementById('duration');
+
+    // 格式化时间
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // 更新时间显示
+    durationEl.textContent = formatTime(duration);
+
+    // 播放/暂停按钮
+    playBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        playBtn.textContent = '⏸️ 暂停';
+        playBtn.classList.add('pause');
+        simulatePlayback();
+      } else {
+        playBtn.textContent = '▶️ 播放';
+        playBtn.classList.remove('pause');
+      }
+    });
+
+    // 模拟播放进度
+    function simulatePlayback() {
+      if (isPlaying && currentTime < duration) {
+        currentTime += 0.1;
+        progressBar.style.width = (currentTime / duration * 100) + '%';
+        currentTimeEl.textContent = formatTime(currentTime);
+        requestAnimationFrame(simulatePlayback);
+      }
+    }
+
+    // 进度条点击
+    document.getElementById('progress-bar').addEventListener('click', (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      currentTime = duration * percent;
+      progressBar.style.width = (percent * 100) + '%';
+      currentTimeEl.textContent = formatTime(currentTime);
+    });
+
+    // 音量控制
+    document.getElementById('volume-slider').addEventListener('click', (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      document.getElementById('volume-bar').style.width = (percent * 100) + '%';
+      document.getElementById('volume-value').textContent = Math.round(percent * 100) + '%';
+    });
+
+    // 播放列表切换
+    document.querySelectorAll('.playlist-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        document.querySelectorAll('.playlist-item').forEach(i => i.classList.remove('active'));
+        e.target.classList.add('active');
+        currentTime = 0;
+        progressBar.style.width = '0%';
+        currentTimeEl.textContent = '0:00';
+      });
+    });
+
+    // 绘制波形（模拟）
+    const canvas = document.getElementById('waveform-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 560;
+    canvas.height = 150;
+
+    function drawWaveform() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.strokeStyle = '#667eea';
+      ctx.lineWidth = 2;
+
+      for (let x = 0; x < canvas.width; x++) {
+        const y = Math.sin(x * 0.05) * 30 * Math.random() + canvas.height / 2;
+        if (x === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+
+      if (isPlaying) {
+        requestAnimationFrame(drawWaveform);
+      }
+    }
+
+    drawWaveform();
+  </script>
+</body>
+
+</html>

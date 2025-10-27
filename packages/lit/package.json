@@ -1,0 +1,62 @@
+{
+  "name": "@ldesign/player-lit",
+  "version": "0.2.0",
+  "description": "Lit Web Components 音视频播放器组件",
+  "keywords": [
+    "ldesign",
+    "lit",
+    "web-components",
+    "audio",
+    "video",
+    "player",
+    "custom-elements"
+  ],
+  "author": "LDesign Team",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
+    },
+    "./components/*": {
+      "types": "./es/components/*.d.ts",
+      "import": "./es/components/*.js",
+      "require": "./lib/components/*.cjs"
+    }
+  },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "es",
+    "lib",
+    "dist"
+  ],
+  "scripts": {
+    "dev": "node ../../../../tools/builder/bin/cli.js build --watch",
+    "build": "node ../../../../tools/builder/bin/cli.js build",
+    "build:prod": "cross-env NODE_ENV=production node ../../../../tools/builder/bin/cli.js build",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "clean": "rimraf dist es lib"
+  },
+  "dependencies": {
+    "@ldesign/player-core": "workspace:*",
+    "@ldesign/shared": "workspace:*",
+    "lit": "^3.1.0"
+  },
+  "devDependencies": {
+    "@lit/reactive-element": "^2.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^1.2.1",
+    "rimraf": "^5.0.5"
+  }
+}

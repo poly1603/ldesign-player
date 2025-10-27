@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React 音频播放器示例 - @ldesign/player-react</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    #root {
+      max-width: 800px;
+      width: 100%;
+    }
+
+    .demo-container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .playlist-section {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    h3 {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .playlist-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      background: #f8f8f8;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .playlist-item:hover {
+      background: #e8e8e8;
+      transform: translateX(5px);
+    }
+
+    .playlist-item.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .playlist-item img {
+      width: 50px;
+      height: 50px;
+      border-radius: 5px;
+      margin-right: 15px;
+    }
+
+    .playlist-info {
+      flex: 1;
+    }
+
+    .playlist-title {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .playlist-artist {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    .playlist-duration {
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .feature-card {
+      padding: 20px;
+      background: #f8f8f8;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .feature-title {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* Mock player styles */
+    .mock-player {
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+    }
+
+    .mock-waveform {
+      height: 120px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+    }
+
+    .mock-controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .mock-btn {
+      padding: 10px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .mock-btn-main {
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      color: white;
+    }
+
+    .mock-progress {
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      margin-bottom: 10px;
+    }
+
+    .mock-progress-bar {
+      height: 100%;
+      width: 45%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 3px;
+    }
+
+    .mock-time {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 15px;
+    }
+
+    .mock-volume {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mock-volume-slider {
+      flex: 1;
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+    }
+
+    .mock-volume-bar {
+      height: 100%;
+      width: 80%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!-- 引入 React 18 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- 引入 Babel 用于转译 JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- 引入播放器组件 (构建后) -->
+  <!-- <script src="../dist/player-react.umd.min.js"></script> -->
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+    // 模拟 AudioPlayer 组件（实际使用时从 @ldesign/player-react 导入）
+    const AudioPlayer = ({
+      src,
+      showWaveform,
+      showVolume,
+      showLyrics,
+      lyrics,
+      onPlay,
+      onPause,
+      onEnded,
+      onNext,
+      onPrev
+    }) => {
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [currentLyric, setCurrentLyric] = useState('');
+
+      const handlePlayPause = () => {
+        setIsPlaying(!isPlaying);
+        if (!isPlaying) {
+          onPlay?.();
+        } else {
+          onPause?.();
+        }
+      };
+
+      // 模拟歌词变化
+      useEffect(() => {
+        const lyrics = [
+          '♪ 美妙的音乐正在播放...',
+          '♪ 让音乐带你飞翔...',
+          '♪ 享受这个美好的时刻...',
+          '♪ 音符在空中飘荡...'
+        ];
+        const interval = setInterval(() => {
+          setCurrentLyric(lyrics[Math.floor(Math.random() * lyrics.length)]);
+        }, 3000);
+        return () => clearInterval(interval);
+      }, []);
+
+      return (
+        <div className="mock-player">
+          <div className="mock-waveform">
+            波形可视化区域
+          </div>
+
+          <div className="mock-controls">
+            <button onClick={onPrev} className="mock-btn">⏮️</button>
+            <button onClick={handlePlayPause} className="mock-btn mock-btn-main">
+              {isPlaying ? '⏸️' : '▶️'}
+            </button>
+            <button onClick={onNext} className="mock-btn">⏭️</button>
+          </div>
+
+          <div className="mock-progress">
+            <div className="mock-progress-bar"></div>
+          </div>
+
+          <div className="mock-time">
+            <span>1:35</span>
+            <span>3:24</span>
+          </div>
+
+          <div className="mock-volume">
+            <span>🔊</span>
+            <div className="mock-volume-slider">
+              <div className="mock-volume-bar"></div>
+            </div>
+            <span style={{ fontSize: '14px', color: '#666' }}>80%</span>
+          </div>
+
+          {showLyrics && lyrics && (
+            <div style={{
+              textAlign: 'center',
+              fontSize: '16px',
+              color: '#333',
+              marginTop: '20px',
+              padding: '15px',
+              background: '#f8f8f8',
+              borderRadius: '8px'
+            }}>
+              {currentLyric || '♪ 音乐播放中...'}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+
+      const playlist = [
+        {
+          id: '1',
+          title: '夏日微风',
+          artist: '轻音乐大师',
+          src: 'track1.mp3',
+          cover: 'https://via.placeholder.com/50/667eea/ffffff?text=♪',
+          duration: '3:24',
+          lyrics: '[00:00.00]夏日微风 - 轻音乐大师\n[00:05.00]♪♪♪'
+        },
+        {
+          id: '2',
+          title: '雨后彩虹',
+          artist: '自然之声',
+          src: 'track2.mp3',
+          cover: 'https://via.placeholder.com/50/764ba2/ffffff?text=♪',
+          duration: '4:15',
+          lyrics: '[00:00.00]雨后彩虹 - 自然之声\n[00:05.00]♪♪♪'
+        },
+        {
+          id: '3',
+          title: '星空漫步',
+          artist: '梦幻乐团',
+          src: 'track3.mp3',
+          cover: 'https://via.placeholder.com/50/f093fb/ffffff?text=♪',
+          duration: '5:02',
+          lyrics: '[00:00.00]星空漫步 - 梦幻乐团\n[00:05.00]♪♪♪'
+        },
+        {
+          id: '4',
+          title: '晨曦之光',
+          artist: '新世纪音乐',
+          src: 'track4.mp3',
+          cover: 'https://via.placeholder.com/50/f5576c/ffffff?text=♪',
+          duration: '3:48',
+          lyrics: '[00:00.00]晨曦之光 - 新世纪音乐\n[00:05.00]♪♪♪'
+        }
+      ];
+
+      const currentTrack = playlist[currentTrackIndex];
+
+      const selectTrack = (index) => {
+        setCurrentTrackIndex(index);
+      };
+
+      const playNext = () => {
+        setCurrentTrackIndex((prev) => (prev + 1) % playlist.length);
+      };
+
+      const playPrev = () => {
+        setCurrentTrackIndex((prev) => (prev - 1 + playlist.length) % playlist.length);
+      };
+
+      const onPlay = () => {
+        console.log('播放:', currentTrack.title);
+      };
+
+      const onPause = () => {
+        console.log('暂停:', currentTrack.title);
+      };
+
+      const onEnded = () => {
+        console.log('播放结束，自动播放下一首');
+        playNext();
+      };
+
+      return (
+        <div className="demo-container">
+          <h1>🎵 React 音频播放器演示</h1>
+
+          <AudioPlayer
+            src={currentTrack.src}
+            showWaveform={true}
+            showVolume={true}
+            showLyrics={true}
+            lyrics={currentTrack.lyrics}
+            onPlay={onPlay}
+            onPause={onPause}
+            onEnded={onEnded}
+            onNext={playNext}
+            onPrev={playPrev}
+          />
+
+          <div className="playlist-section">
+            <h3>播放列表</h3>
+            {playlist.map((track, index) => (
+              <div
+                key={track.id}
+                className={`playlist-item ${currentTrackIndex === index ? 'active' : ''}`}
+                onClick={() => selectTrack(index)}
+              >
+                <img src={track.cover} alt={track.title} />
+                <div className="playlist-info">
+                  <div className="playlist-title">{track.title}</div>
+                  <div className="playlist-artist">{track.artist}</div>
+                </div>
+                <div className="playlist-duration">{track.duration}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="features">
+            <div className="feature-card">
+              <div className="feature-icon">📊</div>
+              <div className="feature-title">波形可视化</div>
+              <div className="feature-desc">实时音频波形显示</div>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">🎤</div>
+              <div className="feature-title">歌词同步</div>
+              <div className="feature-desc">LRC格式歌词支持</div>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">🎚️</div>
+              <div className="feature-title">均衡器</div>
+              <div className="feature-desc">多段音频调节</div>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">📋</div>
+              <div className="feature-title">播放列表</div>
+              <div className="feature-desc">列表管理与循环</div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+
+</html>
