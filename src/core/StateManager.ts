@@ -3,7 +3,6 @@
  */
 
 import { PlayState, type PlayerState } from '../types/player';
-import type { LoopMode } from '../types/events';
 
 export class StateManager {
   private state: PlayerState;

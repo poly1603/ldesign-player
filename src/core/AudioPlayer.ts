@@ -11,6 +11,7 @@ import { PlayState, type IPlayer, type Track } from '../types/player';
 import type { AudioPlayerConfig } from '../types/audio';
 import type { LoopMode } from '../types/events';
 import { generateId, clamp, deepMerge } from '../utils/helpers';
+import { ErrorHandler, PlayerError, PlayerErrorType } from '../utils/errorHandler';
 
 /**
  * 默认配置
@@ -48,7 +49,6 @@ export class AudioPlayer extends EventEmitter implements IPlayer {
   private playlistManager: PlaylistManager;
   private currentHowl: Howl | null = null;
   private audioContext: AudioContext | null = null;
-  private sourceNode: MediaElementAudioSourceNode | null = null;
   private isDestroyed = false;
   private updateTimer: number | null = null;
   private fadeTimeout: number | null = null;
@@ -121,15 +121,19 @@ export class AudioPlayer extends EventEmitter implements IPlayer {
    */
   load(src: string | File | Blob): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.cleanup();
+      try {
+        // 验证媒体源
+        ErrorHandler.validateMediaSource(src);
+        
+        this.cleanup();
 
-      this.stateManager.setState({
-        playState: PlayState.LOADING,
-        error: null,
-      });
-      this.emit('loadstart', undefined);
+        this.stateManager.setState({
+          playState: PlayState.LOADING,
+          error: null,
+        });
+        this.emit('loadstart', undefined);
 
-      let audioSrc: string;
+        let audioSrc: string;
 
       if (typeof src === 'string') {
         audioSrc = src;
@@ -164,13 +168,18 @@ export class AudioPlayer extends EventEmitter implements IPlayer {
         },
 
         onloaderror: (_id, error) => {
-          const errorMessage = typeof error === 'string' ? error : 'Failed to load audio';
+          const playerError = new PlayerError(
+            typeof error === 'string' ? error : 'Failed to load audio',
+            PlayerErrorType.LOAD_ERROR,
+            { recoverable: true }
+          );
+          
           this.stateManager.setState({
             playState: PlayState.ERROR,
-            error: errorMessage,
+            error: ErrorHandler.getFriendlyMessage(playerError),
           });
-          this.emit('error', { message: errorMessage });
-          reject(new Error(errorMessage));
+          this.emit('error', { message: playerError.message });
+          reject(playerError);
         },
 
         onplay: () => {
@@ -217,6 +226,20 @@ export class AudioPlayer extends EventEmitter implements IPlayer {
           this.emit('volumechange', { volume, muted });
         },
       });
+      } catch (error) {
+        const playerError = error instanceof PlayerError ? error : 
+          new PlayerError(
+            error instanceof Error ? error.message : 'Unknown error',
+            PlayerErrorType.LOAD_ERROR
+          );
+        
+        this.stateManager.setState({
+          playState: PlayState.ERROR,
+          error: ErrorHandler.getFriendlyMessage(playerError),
+        });
+        this.emit('error', { message: playerError.message });
+        reject(playerError);
+      }
     });
   }
 
@@ -233,18 +256,27 @@ export class AudioPlayer extends EventEmitter implements IPlayer {
    * 播放
    */
   async play(): Promise<void> {
-    if (!this.currentHowl) {
-      if (this.playlistManager.length() > 0 && this.playlistManager.getCurrentIndex() === -1) {
-        this.playlistManager.setCurrentIndex(0);
-        return;
+    try {
+      if (!this.currentHowl) {
+        if (this.playlistManager.length() > 0 && this.playlistManager.getCurrentIndex() === -1) {
+          this.playlistManager.setCurrentIndex(0);
+          return;
+        }
+        throw new PlayerError('No audio loaded', PlayerErrorType.LOAD_ERROR);
       }
-      throw new Error('No audio loaded');
+
+      // 暂停其他播放器
+      playerManager.pauseOthers(this.id);
+
+      this.currentHowl.play();
+    } catch (error) {
+      const playerError = error instanceof PlayerError ? error :
+        ErrorHandler.handlePlayError(error as Error);
+      
+      this.stateManager.set('error', ErrorHandler.getFriendlyMessage(playerError));
+      this.emit('error', { message: playerError.message });
+      throw playerError;
     }
-
-    // 暂停其他播放器
-    playerManager.pauseOthers(this.id);
-
-    this.currentHowl.play();
   }
 
   /**
@@ -438,6 +470,13 @@ export class AudioPlayer extends EventEmitter implements IPlayer {
    */
   getState() {
     return this.stateManager.getState();
+  }
+
+  /**
+   * 获取状态管理器（供框架适配器使用）
+   */
+  getStateManager(): StateManager {
+    return this.stateManager;
   }
 
   /**

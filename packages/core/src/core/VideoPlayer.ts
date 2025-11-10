@@ -243,8 +243,17 @@ export class VideoPlayer extends EventEmitter implements IPlayer {
       this.videoElement.src = src;
     } else {
       this.videoElement.src = src.src;
+      // HTMLVideoElement 没有 type 属性，需要通过 source 元素设置
       if (src.type) {
-        this.videoElement.type = src.type;
+        // 移除旧的 source 元素
+        const sources = this.videoElement.querySelectorAll('source');
+        sources.forEach(s => s.remove());
+        
+        // 创建新的 source 元素
+        const source = document.createElement('source');
+        source.src = src.src;
+        source.type = src.type;
+        this.videoElement.appendChild(source);
       }
       if (src.quality) {
         this.currentQuality = src.quality.label;

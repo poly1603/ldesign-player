@@ -2,7 +2,7 @@
  * Vue Composable - useAudioPlayer
  */
 
-import { ref, onMounted, onUnmounted, watch, type Ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { AudioPlayer } from '../../../core/AudioPlayer';
 import type { AudioPlayerConfig, Track } from '../../../types';
 import type { PlayerState } from '../../../types/player';

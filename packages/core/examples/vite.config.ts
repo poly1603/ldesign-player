@@ -17,8 +17,9 @@ export default defineConfig({
     }
   },
   server: {
-    port: 8081,
-    open: true
+    port: 8889,
+    host: '0.0.0.0', // 监听所有接口，包括 IPv4
+    open: '/index.html'
   },
   build: {
     outDir: 'dist'

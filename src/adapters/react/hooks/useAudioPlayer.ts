@@ -31,7 +31,7 @@ export function useAudioPlayer(options: UseAudioPlayerOptions = {}) {
     playerRef.current = player;
 
     // 监听状态变化
-    const unsubscribe = player.getStateManager().subscribe((newState) => {
+    const unsubscribe = player.getStateManager().subscribe((newState: PlayerState) => {
       setState(newState);
       setCurrentTime(newState.currentTime);
       setDuration(newState.duration);

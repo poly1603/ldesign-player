@@ -18,6 +18,7 @@ import {
   isPictureInPictureSupported,
   getBufferedPercent,
 } from '../utils/helpers';
+import { ErrorHandler, PlayerError, PlayerErrorType } from '../utils/errorHandler';
 
 /**
  * 默认配置
@@ -225,13 +226,14 @@ export class VideoPlayer extends EventEmitter implements IPlayer {
     });
 
     this.videoElement.addEventListener('error', () => {
-      const error = this.videoElement.error;
-      const errorMessage = error ? `Video error: ${error.message}` : 'Unknown video error';
+      const mediaError = this.videoElement.error;
+      const playerError = ErrorHandler.handleMediaError(mediaError);
+      
       this.stateManager.setState({
         playState: PlayState.ERROR,
-        error: errorMessage,
+        error: ErrorHandler.getFriendlyMessage(playerError),
       });
-      this.emit('error', { message: errorMessage, code: error?.code });
+      this.emit('error', { message: playerError.message, code: playerError.code });
     });
   }
 
@@ -239,19 +241,36 @@ export class VideoPlayer extends EventEmitter implements IPlayer {
    * 加载视频
    */
   load(src: string | VideoSource): void {
-    if (typeof src === 'string') {
-      this.videoElement.src = src;
-    } else {
-      this.videoElement.src = src.src;
-      if (src.type) {
-        this.videoElement.type = src.type;
+    try {
+      // 验证媒体源
+      const srcUrl = typeof src === 'string' ? src : src.src;
+      ErrorHandler.validateMediaSource(srcUrl);
+      
+      if (typeof src === 'string') {
+        this.videoElement.src = src;
+      } else {
+        this.videoElement.src = src.src;
+        // Note: type属性设置需要通过source元素，这里暂时只设置src
+        if (src.quality) {
+          this.currentQuality = src.quality.label;
+        }
       }
-      if (src.quality) {
-        this.currentQuality = src.quality.label;
-      }
-    }
 
-    this.videoElement.load();
+      this.videoElement.load();
+    } catch (error) {
+      const playerError = error instanceof PlayerError ? error :
+        new PlayerError(
+          error instanceof Error ? error.message : 'Failed to load video',
+          PlayerErrorType.LOAD_ERROR
+        );
+      
+      this.stateManager.setState({
+        playState: PlayState.ERROR,
+        error: ErrorHandler.getFriendlyMessage(playerError),
+      });
+      this.emit('error', { message: playerError.message });
+      throw playerError;
+    }
   }
 
   /**
@@ -264,8 +283,17 @@ export class VideoPlayer extends EventEmitter implements IPlayer {
     try {
       await this.videoElement.play();
     } catch (error) {
-      console.error('Play error:', error);
-      throw error;
+      const playerError = ErrorHandler.handlePlayError(error as Error);
+      
+      this.stateManager.set('error', ErrorHandler.getFriendlyMessage(playerError));
+      this.emit('error', { message: playerError.message });
+      
+      // 如果是可恢复的错误，尝试恢复
+      if (playerError.recoverable) {
+        await ErrorHandler.tryRecover(playerError, () => this.videoElement.play(), 2);
+      } else {
+        throw playerError;
+      }
     }
   }
 
@@ -489,6 +517,13 @@ export class VideoPlayer extends EventEmitter implements IPlayer {
    */
   getState() {
     return this.stateManager.getState();
+  }
+
+  /**
+   * 获取状态管理器（供框架适配器使用）
+   */
+  getStateManager(): StateManager {
+    return this.stateManager;
   }
 
   /**

@@ -29,7 +29,6 @@ const PRESETS: Record<EqualizerPreset, number[]> = {
 export class Equalizer {
   private audioContext: AudioContext;
   private filters: BiquadFilterNode[] = [];
-  private sourceNode: MediaElementAudioSourceNode | null = null;
   private enabled = true;
   private currentPreset: EqualizerPreset = 'flat';
 

@@ -1,259 +1,97 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>音频播放器示例 - @ldesign/player-core (Vite Dev)</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自定义视频播放器 - @ldesign/player-core</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
 
-    .player-container {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 20px;
-      padding: 40px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      max-width: 600px;
-      width: 100%;
-    }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
 
-    h1 {
-      color: #333;
-      margin-bottom: 30px;
-      text-align: center;
-    }
+        .title {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 32px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            letter-spacing: -0.5px;
+        }
 
-    .dev-badge {
-      display: inline-block;
-      background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
-      color: white;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      margin-left: 10px;
-      font-weight: 600;
-    }
-
-    .waveform {
-      height: 150px;
-      background: #f5f5f5;
-      border-radius: 10px;
-      margin-bottom: 30px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    #waveform-canvas {
-      width: 100%;
-      height: 100%;
-    }
-
-    .controls {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin-bottom: 30px;
-    }
-
-    .btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 30px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-
-    .btn:hover {
-      transform: scale(1.05);
-    }
-
-    .btn:active {
-      transform: scale(0.95);
-    }
-
-    .btn.pause {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-
-    .progress-container {
-      margin-bottom: 20px;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 6px;
-      background: #e0e0e0;
-      border-radius: 3px;
-      position: relative;
-      cursor: pointer;
-    }
-
-    .progress {
-      height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 3px;
-      width: 0%;
-      transition: width 0.1s;
-    }
-
-    .time-display {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-      color: #666;
-      font-size: 14px;
-    }
-
-    .volume-container {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-
-    .volume-slider {
-      flex: 1;
-      height: 6px;
-      background: #e0e0e0;
-      border-radius: 3px;
-      position: relative;
-      cursor: pointer;
-    }
-
-    .volume-bar {
-      height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 3px;
-      width: 80%;
-    }
-
-    .playlist {
-      border-top: 1px solid #e0e0e0;
-      padding-top: 20px;
-    }
-
-    .playlist h3 {
-      color: #666;
-      margin-bottom: 15px;
-    }
-
-    .playlist-item {
-      padding: 12px;
-      background: #f8f8f8;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .playlist-item:hover {
-      background: #e8e8e8;
-      transform: translateX(5px);
-    }
-
-    .playlist-item.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .info {
-      margin-top: 30px;
-      padding: 20px;
-      background: rgba(0, 210, 255, 0.1);
-      border-radius: 10px;
-      border-left: 4px solid #00d2ff;
-    }
-
-    .info h3 {
-      color: #3a7bd5;
-      margin-bottom: 10px;
-    }
-
-    .info p {
-      color: #666;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .info code {
-      background: rgba(0, 0, 0, 0.05);
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: 'Courier New', monospace;
-    }
-  </style>
+        #player-container {
+            width: 100%;
+        }
+    </style>
 </head>
-
 <body>
-  <div class="player-container">
-    <h1>
-      🎵 音频播放器演示
-      <span class="dev-badge">VITE DEV</span>
-    </h1>
-
-    <div class="waveform">
-      <canvas id="waveform-canvas"></canvas>
+    <div class="container">
+        <h1 class="title">🎬 自定义视频播放器</h1>
+        <div id="player-container"></div>
     </div>
 
-    <div class="progress-container">
-      <div class="progress-bar" id="progress-bar">
-        <div class="progress" id="progress"></div>
-      </div>
-      <div class="time-display">
-        <span id="current-time">0:00</span>
-        <span id="duration">0:00</span>
-      </div>
-    </div>
+    <script type="module">
+        import { CustomVideoPlayer } from '../src/video/CustomVideoPlayer';
 
-    <div class="controls">
-      <button class="btn" id="prev-btn">⏮️ 上一首</button>
-      <button class="btn" id="play-btn">▶️ 播放</button>
-      <button class="btn" id="next-btn">下一首 ⏭️</button>
-    </div>
-
-    <div class="volume-container">
-      <span>🔊 音量</span>
-      <div class="volume-slider" id="volume-slider">
-        <div class="volume-bar" id="volume-bar"></div>
-      </div>
-      <span id="volume-value">80%</span>
-    </div>
-
-    <div class="playlist">
-      <h3>播放列表</h3>
-      <div class="playlist-item active" data-index="0">🎵 示例音频 1 - 轻音乐</div>
-      <div class="playlist-item" data-index="1">🎵 示例音频 2 - 流行音乐</div>
-      <div class="playlist-item" data-index="2">🎵 示例音频 3 - 古典音乐</div>
-    </div>
-
-    <div class="info">
-      <h3>💡 开发提示</h3>
-      <p>
-        此演示运行在 <strong>Vite 开发服务器</strong>上，使用了 alias 配置：<br>
-        <code>@ldesign/player-core</code> → <code>../src/index.ts</code><br>
-        修改源码后会自动热更新，方便开发调试！
-      </p>
-    </div>
-  </div>
-
-  <script type="module" src="./main.ts"></script>
+        const player = new CustomVideoPlayer({
+            container: '#player-container',
+            src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            themeColor: '#667eea',
+            themeColorSecondary: '#764ba2',
+            poster: 2,
+            // 工具栏显示/隐藏配置
+            controlsVisibility: {
+                idle: 'hover',    // 未播放时：'always' 一直显示，'never' 不显示，'hover' 鼠标移上去显示（默认）
+                playing: 'never'   // 播放中：'always' 一直显示，'never' 不显示（默认），'hover' 鼠标移上去显示
+            },
+            // 进度条位置配置
+            progressBarPosition: 'inline',  // 'top' 顶部显示（默认），'inline' 内联显示（播放按钮后面，时间前面）
+            // 圆角配置
+            borderRadius: 0,  // 数字（px）或字符串（如 '8px', '50%'），默认为 0
+            // 主题配置
+            theme: 'spring-festival',  // 'default' | 'spring-festival' | 'mid-autumn' | 'christmas' 或自定义主题对象
+            // 主题包配置（使用 Canvas 绘制）
+            themePackage: 'spring-festival',  // 'spring-festival' 或自定义主题包对象
+            // width: 800,           // 可选：设置宽度（像素或字符串，如 '800px' 或 '100%'）
+            // height: 450,          // 可选：设置高度（像素或字符串）
+            // aspectRatio: '16:9'   // 可选：设置宽高比（如 '16:9', '4:3'）
+            // 默认：宽度铺满容器，高度根据视频比例自动调整
+            
+            // poster 选项：
+            // poster: 'https://example.com/poster.jpg',  // 使用指定图片 URL
+            // poster: true,                              // 自动截取视频第1秒作为封面（默认）
+            // poster: 5,                                 // 自动截取第5秒作为封面（单位：秒）
+            // poster: false,                             // 不使用封面图
+            
+            // controlsVisibility 选项示例：
+            // controlsVisibility: { idle: 'always', playing: 'hover' }  // 未播放时一直显示，播放中鼠标移上去显示
+            // controlsVisibility: { idle: 'hover', playing: 'always' }  // 未播放时鼠标移上去显示，播放中一直显示
+            // controlsVisibility: { idle: 'never', playing: 'hover' }   // 未播放时不显示，播放中鼠标移上去显示
+            // controlsVisibility: { idle: 'always', playing: 'never' }  // 未播放时一直显示，播放中不显示（默认行为）
+            // 默认行为：未播放时鼠标移上去显示（hover），播放中不显示（never）
+            controlsVisibility: {
+                idle: 'never',
+                playing: 'hover'
+            }
+        });
+    </script>
 </body>
-
 </html>
