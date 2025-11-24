@@ -29,6 +29,7 @@ export class WaveformRenderer extends EventEmitter {
   private animationId: number | null = null;
   private progress = 0;
   private isInteracting = false;
+  private boundHandlers: Map<string, EventListener> = new Map();
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -55,7 +56,9 @@ export class WaveformRenderer extends EventEmitter {
     this.analyser.fftSize = 2048;
     this.analyser.smoothingTimeConstant = 0.8;
 
-    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+    // 使用 ArrayBuffer 创建 Uint8Array 避免类型问题
+    const buffer = new ArrayBuffer(this.analyser.frequencyBinCount);
+    this.dataArray = new Uint8Array(buffer);
 
     // 绑定交互事件
     if (this.config.interact) {
@@ -87,26 +90,46 @@ export class WaveformRenderer extends EventEmitter {
       this.emit('seek', { progress: Math.max(0, Math.min(1, progress)) });
     };
 
-    this.canvas.addEventListener('mousedown', () => {
+    const onMouseDown = () => {
       this.isInteracting = true;
-    });
+    };
 
-    this.canvas.addEventListener('mousemove', (e) => {
+    const onMouseMove = (e: MouseEvent) => {
       if (this.isInteracting) {
         handleInteract(e);
       }
-    });
+    };
 
-    this.canvas.addEventListener('mouseup', (e) => {
+    const onMouseUp = (e: MouseEvent) => {
       if (this.isInteracting) {
         handleInteract(e);
         this.isInteracting = false;
       }
-    });
+    };
 
+    // 保存引用以便移除
+    this.boundHandlers.set('mousedown', onMouseDown as EventListener);
+    this.boundHandlers.set('mousemove', onMouseMove as EventListener);
+    this.boundHandlers.set('mouseup', onMouseUp as EventListener);
+    this.boundHandlers.set('click', handleInteract as EventListener);
+
+    this.canvas.addEventListener('mousedown', onMouseDown);
+    this.canvas.addEventListener('mousemove', onMouseMove);
+    this.canvas.addEventListener('mouseup', onMouseUp);
     this.canvas.addEventListener('click', handleInteract);
 
     this.canvas.style.cursor = 'pointer';
+  }
+
+  /**
+   * 移除交互事件
+   */
+  private unbindEvents(): void {
+    this.boundHandlers.forEach((handler, event) => {
+      this.canvas.removeEventListener(event, handler);
+    });
+    this.boundHandlers.clear();
+    this.canvas.style.cursor = '';
   }
 
   /**
@@ -186,6 +209,7 @@ export class WaveformRenderer extends EventEmitter {
     }
 
     const render = () => {
+      // @ts-ignore - Web Audio API 类型定义问题
       this.analyser.getByteTimeDomainData(this.dataArray);
 
       const { width, height, waveColor, backgroundColor, pixelRatio } = this.config;
@@ -235,6 +259,7 @@ export class WaveformRenderer extends EventEmitter {
     }
 
     const render = () => {
+      // @ts-ignore - Web Audio API 类型定义问题
       this.analyser.getByteFrequencyData(this.dataArray);
 
       const { width, height, waveColor, backgroundColor, pixelRatio, barWidth, barGap } = this.config;
@@ -330,6 +355,7 @@ export class WaveformRenderer extends EventEmitter {
    */
   destroy(): void {
     this.stop();
+    this.unbindEvents();
     this.analyser.disconnect();
     this.clear();
   }

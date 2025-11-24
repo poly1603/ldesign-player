@@ -41,6 +41,9 @@ export type PlayerEventMap = {
 
   // 循环模式变化
   loopmodechange: { mode: LoopMode };
+
+  // 波形渲染器事件
+  seek: { progress: number };
 };
 
 export type LoopMode = 'none' | 'single' | 'list' | 'random';

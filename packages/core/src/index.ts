@@ -27,6 +27,14 @@ export * from './video/CustomVideoPlayer'
 export * from './types'
 
 // Utils
-export * from './utils/helpers'
+export * from './utils/helpers';
 
-
+// 导出新功能
+export * from './features/PlayHistory';
+export * from './features/ABLoop';
+export * from './features/OfflineCache';
+export * from './features/PlaybackResume';
+export * from './features/PlaybackRateMemory';
+export * from './features/QualitySwitcher';
+export * from './features/GestureControl';
+export * from './features/MiniPlayer';

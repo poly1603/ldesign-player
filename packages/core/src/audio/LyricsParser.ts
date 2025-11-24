@@ -8,6 +8,7 @@ import { parseTime } from '../utils/helpers';
 export class LyricsParser {
   private lyrics: LyricLine[] = [];
   private metadata: Record<string, string> = {};
+  private abortController: AbortController | null = null;
 
   /**
    * 解析 LRC 格式歌词
@@ -62,10 +63,48 @@ export class LyricsParser {
   /**
    * 从 URL 加载并解析歌词
    */
-  async loadFromUrl(url: string): Promise<void> {
-    const response = await fetch(url);
-    const content = await response.text();
-    this.parse(content);
+  async loadFromUrl(url: string, timeout = 10000): Promise<void> {
+    // 取消之前的请求
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+
+    this.abortController = new AbortController();
+    const timeoutId = setTimeout(() => this.abortController?.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        signal: this.abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const content = await response.text();
+      this.parse(content);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out or was cancelled');
+        }
+        throw error;
+      }
+      throw new Error('Failed to load lyrics');
+    } finally {
+      clearTimeout(timeoutId);
+      this.abortController = null;
+    }
+  }
+
+  /**
+   * 取消加载
+   */
+  cancelLoad(): void {
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
   }
 
   /**
@@ -168,6 +207,7 @@ export class LyricsParser {
    * 清空歌词
    */
   clear(): void {
+    this.cancelLoad();
     this.lyrics = [];
     this.metadata = {};
   }

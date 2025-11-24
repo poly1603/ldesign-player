@@ -6,6 +6,7 @@ import type { SubtitleCue } from '../types/video';
 
 export class SubtitleParser {
   private cues: SubtitleCue[] = [];
+  private abortController: AbortController | null = null;
 
   /**
    * 解析 SRT 格式字幕
@@ -101,15 +102,53 @@ export class SubtitleParser {
   /**
    * 从 URL 加载字幕
    */
-  async loadFromUrl(url: string): Promise<void> {
-    const response = await fetch(url);
-    const content = await response.text();
+  async loadFromUrl(url: string, timeout = 10000): Promise<void> {
+    // 取消之前的请求
+    if (this.abortController) {
+      this.abortController.abort();
+    }
 
-    // 根据内容判断格式
-    if (content.includes('WEBVTT')) {
-      this.parseVTT(content);
-    } else {
-      this.parseSRT(content);
+    this.abortController = new AbortController();
+    const timeoutId = setTimeout(() => this.abortController?.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        signal: this.abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const content = await response.text();
+
+      // 根据内容判断格式
+      if (content.includes('WEBVTT')) {
+        this.parseVTT(content);
+      } else {
+        this.parseSRT(content);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out or was cancelled');
+        }
+        throw error;
+      }
+      throw new Error('Failed to load subtitles');
+    } finally {
+      clearTimeout(timeoutId);
+      this.abortController = null;
+    }
+  }
+
+  /**
+   * 取消加载
+   */
+  cancelLoad(): void {
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
     }
   }
 
@@ -201,6 +240,7 @@ export class SubtitleParser {
    * 清空字幕
    */
   clear(): void {
+    this.cancelLoad();
     this.cues = [];
   }
 }
