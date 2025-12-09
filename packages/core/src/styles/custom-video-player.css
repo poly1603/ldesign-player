@@ -58,7 +58,7 @@
   opacity: 1;
 }
 
-.custom-video-player-container video.playing ~ .video-poster-overlay {
+.custom-video-player-container video.playing~.video-poster-overlay {
   opacity: 0;
 }
 
@@ -273,7 +273,8 @@
   align-items: center;
   gap: 15px;
   flex: 1;
-  min-width: 0; /* 允许flex子元素收缩 */
+  min-width: 0;
+  /* 允许flex子元素收缩 */
 }
 
 /* 当进度条内联时，调整controls-left的布局 */
@@ -285,23 +286,27 @@
 .controls-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .play-pause-btn,
 .center-play-btn {
-  width: 50px;
-  height: 50px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: none;
-  background: var(--control-bg);
+  background: #fff;
   color: var(--control-icon-color);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .play-pause-btn:hover {
@@ -338,6 +343,8 @@
   transform: translate(-50%, -50%);
   width: 80px;
   height: 80px;
+  min-width: 80px;
+  min-height: 80px;
   opacity: 0;
   pointer-events: none;
   z-index: 10;
@@ -431,9 +438,15 @@
 .fullscreen-btn,
 .page-fullscreen-btn,
 .speed-btn,
-.pip-btn {
-  width: 40px;
-  height: 40px;
+.pip-btn,
+.rotate-btn,
+.screenshot-btn,
+.download-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: none;
   background: var(--control-bg-light);
@@ -442,7 +455,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: all 0.2s;
   position: relative;
 }
 
@@ -450,7 +463,10 @@
 .fullscreen-btn:hover,
 .page-fullscreen-btn:hover,
 .speed-btn:hover,
-.pip-btn:hover {
+.pip-btn:hover,
+.rotate-btn:hover,
+.screenshot-btn:hover,
+.download-btn:hover {
   background: var(--control-bg-light-hover);
   transform: scale(1.1);
 }
@@ -459,7 +475,10 @@
 .fullscreen-btn svg,
 .page-fullscreen-btn svg,
 .speed-btn svg,
-.pip-btn svg {
+.pip-btn svg,
+.rotate-btn svg,
+.screenshot-btn svg,
+.download-btn svg {
   width: 20px;
   height: 20px;
   stroke-width: 2;
@@ -563,11 +582,13 @@
     transform: translateY(-50%) scale(1);
     opacity: 1;
   }
+
   50% {
     transform: translateY(-50%) scale(1.3);
     opacity: 0.8;
     box-shadow: 0 0 15px #ff4757, 0 0 30px #ff6348, 0 0 40px rgba(255, 71, 87, 0.5);
   }
+
   100% {
     transform: translateY(-50%) scale(0.8);
     opacity: 0.6;
@@ -576,13 +597,7 @@
 }
 
 .theme-spring-festival .progress-container {
-  background: repeating-linear-gradient(
-    90deg,
-    #ff6b6b 0px,
-    #ff6b6b 8px,
-    #ff8e8e 8px,
-    #ff8e8e 16px
-  );
+  background: repeating-linear-gradient(90deg, #ff6b6b 0px, #ff6b6b 8px, #ff8e8e 8px, #ff8e8e 16px);
   position: relative;
 }
 
@@ -593,13 +608,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: repeating-linear-gradient(
-    90deg,
-    transparent 0px,
-    transparent 7px,
-    rgba(255, 255, 255, 0.1) 7px,
-    rgba(255, 255, 255, 0.1) 8px
-  );
+  background: repeating-linear-gradient(90deg, transparent 0px, transparent 7px, rgba(255, 255, 255, 0.1) 7px, rgba(255, 255, 255, 0.1) 8px);
   pointer-events: none;
 }
 
@@ -610,13 +619,7 @@
 }
 
 .theme-mid-autumn .progress-container {
-  background: repeating-linear-gradient(
-    90deg,
-    #ffd700 0px,
-    #ffd700 10px,
-    #ffed4e 10px,
-    #ffed4e 20px
-  );
+  background: repeating-linear-gradient(90deg, #ffd700 0px, #ffd700 10px, #ffed4e 10px, #ffed4e 20px);
 }
 
 /* 圣诞主题 */
@@ -626,12 +629,139 @@
 }
 
 .theme-christmas .progress-container {
-  background: repeating-linear-gradient(
-    90deg,
-    #c41e3a 0px,
-    #c41e3a 8px,
-    #228b22 8px,
-    #228b22 16px
-  );
+  background: repeating-linear-gradient(90deg, #c41e3a 0px, #c41e3a 8px, #228b22 8px, #228b22 16px);
 }
 
+/* ==================== 响应式布局 ==================== */
+
+/* 紧凑模式 - 进度条和按钮同行 */
+.custom-controls.compact-mode {
+  padding: 12px 16px;
+  gap: 0;
+}
+
+.custom-controls.compact-mode .controls-row {
+  gap: 8px;
+}
+
+.custom-controls.compact-mode .controls-left {
+  gap: 8px;
+}
+
+.custom-controls.compact-mode .progress-container {
+  flex: 1;
+  min-width: 80px;
+  height: 4px;
+  margin: 0 8px;
+}
+
+.custom-controls.compact-mode .time-display {
+  font-size: 12px;
+  width: auto;
+  min-width: auto;
+  max-width: none;
+}
+
+.custom-controls.compact-mode .play-pause-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+}
+
+.custom-controls.compact-mode .play-pause-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 小尺寸播放器适配 */
+.custom-video-player-container.size-small .custom-controls {
+  padding: 8px 12px;
+}
+
+.custom-video-player-container.size-small .volume-btn,
+.custom-video-player-container.size-small .fullscreen-btn,
+.custom-video-player-container.size-small .page-fullscreen-btn,
+.custom-video-player-container.size-small .speed-btn,
+.custom-video-player-container.size-small .pip-btn,
+.custom-video-player-container.size-small .rotate-btn,
+.custom-video-player-container.size-small .screenshot-btn,
+.custom-video-player-container.size-small .download-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.custom-video-player-container.size-small .volume-btn svg,
+.custom-video-player-container.size-small .fullscreen-btn svg,
+.custom-video-player-container.size-small .page-fullscreen-btn svg,
+.custom-video-player-container.size-small .speed-btn svg,
+.custom-video-player-container.size-small .pip-btn svg,
+.custom-video-player-container.size-small .rotate-btn svg,
+.custom-video-player-container.size-small .screenshot-btn svg,
+.custom-video-player-container.size-small .download-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.custom-video-player-container.size-small .play-pause-btn {
+  width: 40px;
+  height: 40px;
+}
+
+.custom-video-player-container.size-small .center-play-btn {
+  width: 60px;
+  height: 60px;
+}
+
+.custom-video-player-container.size-small .time-display {
+  font-size: 12px;
+  width: auto;
+  min-width: auto;
+  max-width: none;
+}
+
+.custom-video-player-container.size-small .controls-right {
+  gap: 4px;
+}
+
+/* 隐藏部分按钮在小尺寸下 */
+.custom-video-player-container.size-small .rotate-btn,
+.custom-video-player-container.size-small .screenshot-btn,
+.custom-video-player-container.size-small .download-btn,
+.custom-video-player-container.size-small .page-fullscreen-btn {
+  display: none;
+}
+
+/* ==================== 弹幕容器 ==================== */
+.danmaku-toggle-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: var(--control-bg-light);
+  color: var(--control-icon-color-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.danmaku-toggle-btn:hover {
+  background: var(--control-bg-light-hover);
+  transform: scale(1.1);
+}
+
+.danmaku-toggle-btn.active {
+  background: var(--theme-color);
+  color: #fff;
+}
+
+.danmaku-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+}

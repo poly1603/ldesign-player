@@ -1,0 +1,405 @@
+.cap {
+  --cap-primary: #6366f1;
+  --cap-bg: #ffffff;
+  --cap-text: #1e293b;
+  --cap-text-secondary: #64748b;
+  --cap-border: #e2e8f0;
+  background: var(--cap-bg);
+  border-radius: 16px;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 紧凑模式（默认）：封面和信息水平排列 */
+.cap--compact .cap__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+/* 垂直模式：封面居中，信息居中 */
+.cap--vertical .cap__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.cap--vertical .cap__cover {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 12px;
+}
+
+.cap--vertical .cap__info {
+  width: 100%;
+}
+
+/* 封面基础样式 */
+.cap__cover {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* 圆形CD封面 */
+.cap--cd .cap__cover {
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 方形封面播放动画 - 呼吸光晕效果 */
+.cap__cover--playing {
+  animation: cover-glow 2s ease-in-out infinite;
+}
+
+@keyframes cover-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 0 var(--cap-primary);
+  }
+
+  50% {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+}
+
+/* CD旋转动画 */
+.cap--cd .cap__cover--playing {
+  animation: cd-spin 8s linear infinite;
+}
+
+@keyframes cd-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cap__cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cap__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cap__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--cap-text);
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cap__artist {
+  font-size: 0.8rem;
+  color: var(--cap-text-secondary);
+  margin: 0;
+}
+
+/* 主控制行 */
+.cap__main-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cap__progress {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cap__progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--cap-border);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+  transition: height 0.15s;
+}
+
+.cap__progress-bar:hover {
+  height: 6px;
+}
+
+.cap__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-radius: 2px;
+  width: 0;
+  transition: width 0.1s;
+}
+
+.cap__time-current,
+.cap__time-duration {
+  font-size: 0.7rem;
+  color: var(--cap-text-secondary);
+  min-width: 32px;
+}
+
+.cap__time-current {
+  text-align: right;
+}
+
+.cap__time-duration {
+  text-align: left;
+}
+
+.cap__btn {
+  background: transparent;
+  border: none;
+  color: var(--cap-text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cap__btn:hover {
+  color: var(--cap-primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.cap__btn--main {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cap__btn--main:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+.cap__btn--small {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  flex-shrink: 0;
+  padding: 6px;
+}
+
+.cap__btn--text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  min-width: 36px;
+}
+
+/* 倍速菜单 */
+.cap__speed-wrapper {
+  position: relative;
+}
+
+.cap__speed-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 0;
+  background: var(--cap-bg);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+  min-width: 60px;
+}
+
+.cap__speed-menu--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cap__speed-menu::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--cap-bg);
+}
+
+.cap__speed-option {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  color: var(--cap-text-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.cap__speed-option:hover {
+  color: var(--cap-primary);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.cap__speed-option--active {
+  color: var(--cap-primary);
+  font-weight: 600;
+}
+
+/* 音量弹窗容器 */
+.cap__volume-wrapper {
+  position: relative;
+}
+
+.cap__volume-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 8px;
+  background: var(--cap-bg);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+}
+
+.cap__volume-popup--visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cap__volume-popup::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--cap-bg);
+}
+
+.cap__volume-slider {
+  width: 6px;
+  height: 80px;
+  background: var(--cap-border);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+}
+
+.cap__volume-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: var(--cap-primary);
+  border-radius: 3px;
+  height: 80%;
+  transition: height 0.1s;
+}
+
+/* 歌词容器 - 位于 header 和 main-row 之间 */
+.cap__lyrics {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(139, 92, 246, 0.04));
+  border-radius: 12px;
+  text-align: center;
+  min-height: 70px;
+  overflow: hidden;
+}
+
+.cap__lyrics-wrapper {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cap__lyrics-scroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+.cap__lyrics-scroll--animating {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.cap__lyrics-line {
+  font-size: 0.85rem;
+  color: var(--cap-text-secondary);
+  line-height: 1.6;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.cap__lyrics-line--prev {
+  font-size: 0.8rem;
+  opacity: 0.35;
+  transform: scale(0.9);
+}
+
+.cap__lyrics-line--current {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--cap-primary);
+  opacity: 1;
+  transform: scale(1);
+  text-shadow: 0 1px 2px rgba(99, 102, 241, 0.1);
+}
+
+.cap__lyrics-line--next {
+  font-size: 0.85rem;
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+/* 歌词淡入动画 */
+@keyframes lyric-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cap__lyrics-line--current {
+  animation: lyric-fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
