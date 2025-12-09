@@ -181,7 +181,10 @@ export class CustomAudioPlayer {
 
     // 应用主题色
     if (this.options.themeColor) {
-      this.playerContainer.style.setProperty('--cap-primary', this.options.themeColor);
+      this.setThemeColor(this.options.themeColor);
+    } else {
+      // 默认主题色
+      this.setThemeColor('#6366f1');
     }
 
     // 应用高度设置
@@ -514,6 +517,46 @@ export class CustomAudioPlayer {
 
   public getContainer(): HTMLElement {
     return this.playerContainer;
+  }
+
+  /**
+   * 设置主题色
+   * @param color 主题色值，支持 HEX (#RRGGBB) 或 rgb/rgba
+   */
+  public setThemeColor(color: string): void {
+    this.playerContainer.style.setProperty('--cap-primary', color);
+
+    // 解析颜色并设置 RGB 变量，用于 CSS rgba()
+    let r = 99, g = 102, b = 241; // 默认值
+
+    if (color.startsWith('#')) {
+      const hex = color.slice(1);
+      if (hex.length === 3) {
+        r = parseInt(hex[0] + hex[0], 16);
+        g = parseInt(hex[1] + hex[1], 16);
+        b = parseInt(hex[2] + hex[2], 16);
+      } else if (hex.length === 6) {
+        r = parseInt(hex.slice(0, 2), 16);
+        g = parseInt(hex.slice(2, 4), 16);
+        b = parseInt(hex.slice(4, 6), 16);
+      }
+    } else if (color.startsWith('rgb')) {
+      const match = color.match(/\d+/g);
+      if (match && match.length >= 3) {
+        r = parseInt(match[0]);
+        g = parseInt(match[1]);
+        b = parseInt(match[2]);
+      }
+    }
+
+    this.playerContainer.style.setProperty('--cap-primary-rgb', `${r}, ${g}, ${b}`);
+  }
+
+  /**
+   * 获取当前主题色
+   */
+  public getThemeColor(): string {
+    return getComputedStyle(this.playerContainer).getPropertyValue('--cap-primary').trim() || '#6366f1';
   }
 
   public destroy(): void {

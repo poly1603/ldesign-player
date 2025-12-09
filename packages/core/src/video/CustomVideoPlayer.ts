@@ -2637,11 +2637,27 @@ export class CustomVideoPlayer {
     return this.currentSpeed;
   }
 
+  /**
+   * 设置主题色
+   * @param primary 主色调，如 '#6366f1'
+   * @param secondary 辅助色调（可选）
+   */
   public setThemeColor(primary: string, secondary?: string): void {
-    document.documentElement.style.setProperty('--theme-color', primary);
+    this.playerContainer.style.setProperty('--theme-color', primary);
     if (secondary) {
-      document.documentElement.style.setProperty('--theme-color-secondary', secondary);
+      this.playerContainer.style.setProperty('--theme-color-secondary', secondary);
     }
+  }
+
+  /**
+   * 获取当前主题色
+   */
+  public getThemeColor(): { primary: string; secondary: string } {
+    const styles = getComputedStyle(this.playerContainer);
+    return {
+      primary: styles.getPropertyValue('--theme-color').trim() || '#6366f1',
+      secondary: styles.getPropertyValue('--theme-color-secondary').trim() || '#8b5cf6',
+    };
   }
 
   // 旋转视频

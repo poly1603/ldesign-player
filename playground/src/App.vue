@@ -25,6 +25,19 @@
         <button class="switch-btn" :class="{ active: compactMode }" @click="compactMode = true">紧凑</button>
       </div>
 
+      <!-- 主题色切换 -->
+      <div class="theme-switch">
+        <span class="switch-label">主题色：</span>
+        <div class="theme-colors">
+          <button v-for="color in themeColors" :key="color" 
+            class="theme-color-btn" 
+            :style="{ background: color }"
+            :class="{ active: videoThemeColor === color }"
+            @click="setVideoTheme(color)"
+          ></button>
+        </div>
+      </div>
+
       <div class="player-grid">
         <!-- Core 渲染 -->
         <div class="player-card">
@@ -76,6 +89,19 @@
         <button class="switch-btn" :class="{ active: audioCoverStyle === 'round' }" @click="audioCoverStyle = 'round'">CD</button>
       </div>
 
+      <!-- 主题色切换 -->
+      <div class="theme-switch">
+        <span class="switch-label">主题色：</span>
+        <div class="theme-colors">
+          <button v-for="color in themeColors" :key="color" 
+            class="theme-color-btn" 
+            :style="{ background: color }"
+            :class="{ active: audioThemeColor === color }"
+            @click="setAudioTheme(color)"
+          ></button>
+        </div>
+      </div>
+
       <div class="player-grid">
         <!-- Core 渲染 -->
         <div class="player-card">
@@ -91,7 +117,7 @@
       </div>
 
       <div class="info-box">
-        <strong>功能特性：</strong>播放控制、进度拖拽、音量调节、倍速播放、歌词同步、CD旋转效果、布局切换
+        <strong>功能特性：</strong>播放控制、进度拖拽、音量调节、倍速播放、歌词同步、CD旋转效果、布局切换、主题色切换
       </div>
     </section>
   </div>
@@ -106,10 +132,15 @@ const activeTab = ref<'video' | 'audio'>('video')
 const compactMode = ref(false)
 const audioLayout = ref<'compact' | 'vertical'>('compact')
 const audioCoverStyle = ref<'square' | 'round'>('round')
+const audioThemeColor = ref('#6366f1')
+const videoThemeColor = ref('#6366f1')
 const coreDanmakuText = ref('')
 const vueDanmakuText = ref('')
 const coreDanmakuColor = ref('#ffffff')
 const vueDanmakuColor = ref('#ffffff')
+
+// 可选主题色
+const themeColors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16']
 
 // 弹幕设置
 const danmakuSpeed = ref(150)
@@ -120,28 +151,34 @@ const danmakuOpacity = ref(1)
 const emojis = ['😀', '😂', '🤣', '❤️', '🔥', '👍', '👏', '🎉', '💯', '⭐', '🚀', '😎']
 
 // 免费在线媒体资源
-const videoSrc = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+// 带字幕的示例视频 (Sintel - 开源电影)
+const videoSrc = 'https://media.w3.org/2010/05/sintel/trailer.mp4'
+// 中文歌曲示例
 const audioSrc = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
 
-// 示例歌词 (LRC格式)
-const sampleLyrics = `[ti:SoundHelix Song 1]
-[ar:SoundHelix]
-[00:00.00]♪ SoundHelix Song 1 ♪
-[00:05.00]Electronic Music Demo
-[00:10.00]Perfect for testing audio players
-[00:15.00]Enjoy the rhythm and beats
-[00:20.00]Let the music flow
-[00:25.00]Feel the electronic vibes
-[00:30.00]Moving to the sound
-[00:35.00]Dancing in the code
-[00:40.00]Programming with music
-[00:45.00]Creative inspiration
-[00:50.00]Building something great
-[00:55.00]One line at a time
-[01:00.00]The beat goes on
-[01:05.00]Never stop coding
-[01:10.00]Music and technology
-[01:15.00]A perfect combination`
+// 中文示例歌词 (LRC格式) - 模拟《小幸运》
+const sampleLyrics = `[ti:小幸运]
+[ar:田馥甄]
+[al:我的少女时代 电影原声带]
+[00:00.00]♪ 小幸运 - 田馥甄 ♪
+[00:04.00]
+[00:08.00]我听见雨滴落在青青草地
+[00:14.00]我听见远方下课钟声响起
+[00:20.00]可是我没有听见你的声音
+[00:26.00]认真呼唤我姓名
+[00:32.00]爱上你的时候还不懂感情
+[00:38.00]离别了才觉得刻骨铭心
+[00:44.00]为什么没有发现遇见了你
+[00:50.00]是生命最好的事情
+[00:56.00]也许当时忙着微笑和哭泣
+[01:02.00]忙着追逐天空中的流星
+[01:08.00]人理所当然的忘记
+[01:14.00]是谁风里雨里一直默默守护在原地
+[01:20.00]原来你是我最想留住的幸运
+[01:26.00]原来我们和爱情曾经靠得那么近
+[01:32.00]那为我对抗世界的决定
+[01:38.00]那陪我淋的雨 一幕幕都是你
+[01:44.00]一尘不染的真心`
 
 // 模拟弹幕数据
 const sampleDanmakuData = [
@@ -192,7 +229,7 @@ function createVideoPlayers() {
       borderRadius: 12,
       compactMode: compactMode.value,
       poster: 2, // 从第2秒截取封面
-      themeColor: '#6366f1',  // 主题色
+      themeColor: videoThemeColor.value,
       danmaku: true,
       danmakuData: sampleDanmakuData,
     })
@@ -207,7 +244,7 @@ function createVideoPlayers() {
       borderRadius: 12,
       compactMode: compactMode.value,
       poster: 2, // 从第2秒截取封面
-      themeColor: '#ec4899',  // 不同主题色
+      themeColor: videoThemeColor.value,
       danmaku: true,
       danmakuData: sampleDanmakuData,
     })
@@ -228,14 +265,14 @@ function createAudioPlayers() {
     coreAudioPlayer = new CustomAudioPlayer({
       container: coreAudioContainer.value,
       src: audioSrc,
-      title: 'SoundHelix Song 1',
-      artist: 'SoundHelix',
+      title: '小幸运',
+      artist: '田馥甄',
       lyrics: sampleLyrics,
       showLyrics: true,
       layout: audioLayout.value,
       coverStyle: audioCoverStyle.value,
       lyricsHeight: 150,
-      themeColor: '#6366f1',  // 主题色
+      themeColor: audioThemeColor.value,
     })
   }
   
@@ -243,14 +280,14 @@ function createAudioPlayers() {
     vueAudioPlayer = new CustomAudioPlayer({
       container: vueAudioContainer.value,
       src: audioSrc,
-      title: 'SoundHelix Song 1',
-      artist: 'SoundHelix',
+      title: '小幸运',
+      artist: '田馥甄',
       lyrics: sampleLyrics,
       showLyrics: true,
       layout: audioLayout.value,
       coverStyle: audioCoverStyle.value,
       lyricsHeight: 150,
-      themeColor: '#ec4899',  // 不同主题色
+      themeColor: audioThemeColor.value,
     })
   }
 }
@@ -259,6 +296,20 @@ function createAudioPlayers() {
 watch([audioLayout, audioCoverStyle], () => {
   createAudioPlayers()
 })
+
+// 设置音频播放器主题色
+function setAudioTheme(color: string) {
+  audioThemeColor.value = color
+  coreAudioPlayer?.setThemeColor(color)
+  vueAudioPlayer?.setThemeColor(color)
+}
+
+// 设置视频播放器主题色
+function setVideoTheme(color: string) {
+  videoThemeColor.value = color
+  coreVideoPlayer?.setThemeColor(color)
+  vueVideoPlayer?.setThemeColor(color)
+}
 
 // 发送弹幕
 function sendCoreDanmaku() {
@@ -381,6 +432,18 @@ body {
 }
 .switch-btn:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
 .switch-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+
+.theme-switch {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin-bottom: 20px;
+}
+.theme-colors { display: flex; gap: 8px; }
+.theme-color-btn {
+  width: 28px; height: 28px; border-radius: 50%; border: 3px solid transparent;
+  cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.theme-color-btn:hover { transform: scale(1.15); }
+.theme-color-btn.active { border-color: #fff; transform: scale(1.1); }
 
 .danmaku-panel {
   display: flex; gap: 8px; margin-top: 12px;
