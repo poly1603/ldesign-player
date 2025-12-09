@@ -16,6 +16,11 @@ export interface AudioPlayerConfig extends BasePlayerConfig {
 }
 
 /**
+ * 音频播放器选项（别名）
+ */
+export type AudioPlayerOptions = AudioPlayerConfig;
+
+/**
  * 可视化配置
  */
 export interface VisualizerConfig {

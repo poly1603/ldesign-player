@@ -19,6 +19,11 @@ export interface VideoPlayerConfig extends BasePlayerConfig {
 }
 
 /**
+ * 视频播放器选项（别名）
+ */
+export type VideoPlayerOptions = VideoPlayerConfig;
+
+/**
  * 视频源
  */
 export interface VideoSource {

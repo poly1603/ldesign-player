@@ -4,7 +4,7 @@
 
 import { ref, onMounted, onUnmounted } from 'vue'
 import { VideoPlayer } from '@ldesign/player-core'
-import type { VideoPlayerOptions as VideoPlayerConfig } from '@ldesign/player-core'
+import type { VideoPlayerConfig } from '@ldesign/player-core'
 
 export interface UseVideoPlayerOptions extends Partial<VideoPlayerConfig> {
   autoInit?: boolean

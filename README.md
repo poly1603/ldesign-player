@@ -35,7 +35,7 @@
 
 ### 🚀 通用特性
 
-- 🎯 **框架无关**: 支持 Vue 3、React 16.8+、原生 JS
+- 🎯 **框架无关**: 支持 Vue 3、原生 JS
 - 📦 **体积小巧**: 核心库 < 50KB（gzipped）
 - 💪 **TypeScript**: 完整的类型定义
 - 🎨 **可定制**: 支持主题定制和样式覆盖
@@ -143,54 +143,14 @@ const seek = (value) => {
 </script>
 ```
 
-### React
+### Playground
 
-```jsx
-import { useRef } from 'react';
-import { useAudioPlayer, useVideoPlayer } from '@ldesign/player/react';
-import '@ldesign/player/style.css';
+项目包含一个完整的 playground 示例，展示了所有使用方式：
 
-function App() {
-  // 音频播放器
-  const {
-    isPlaying,
-    currentTime,
-    duration,
-    toggle,
-    seek,
-  } = useAudioPlayer({
-    playlist: [
-      { id: '1', title: '歌曲1', src: 'audio1.mp3' },
-    ],
-  });
-
-  // 视频播放器
-  const videoContainerRef = useRef(null);
-  const {
-    isPlaying: videoIsPlaying,
-    toggle: videoToggle,
-    toggleFullscreen,
-  } = useVideoPlayer(videoContainerRef, {
-    src: 'video.mp4',
-  });
-
-  return (
-    <div>
-      <h2>音频播放器</h2>
-      <button onClick={toggle}>
-        {isPlaying ? '暂停' : '播放'}
-      </button>
-      <div>{currentTime.toFixed(2)} / {duration.toFixed(2)}</div>
-      
-      <h2>视频播放器</h2>
-      <div ref={videoContainerRef}></div>
-      <button onClick={videoToggle}>
-        {videoIsPlaying ? '暂停' : '播放'}
-      </button>
-      <button onClick={toggleFullscreen}>全屏</button>
-    </div>
-  );
-}
+```bash
+cd playground
+pnpm install
+pnpm dev
 ```
 
 ## 📚 高级功能

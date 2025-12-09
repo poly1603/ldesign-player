@@ -7,10 +7,19 @@ export { AudioPlayer, VideoPlayer }
 
 // 导出 composables
 export { useAudioPlayer } from './composables/useAudioPlayer'
+export type { UseAudioPlayerOptions } from './composables/useAudioPlayer'
 export { useVideoPlayer } from './composables/useVideoPlayer'
+export type { UseVideoPlayerOptions } from './composables/useVideoPlayer'
 
-// 导出类型
-export * from '@ldesign/player-core'
+// 导出核心类型
+export type {
+  AudioPlayerConfig,
+  AudioPlayerOptions,
+  VideoPlayerConfig,
+  VideoPlayerOptions,
+  Track,
+  PlayState,
+} from '@ldesign/player-core'
 
 // 组件安装函数
 const components = [AudioPlayer, VideoPlayer]

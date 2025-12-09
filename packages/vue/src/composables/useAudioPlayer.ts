@@ -4,7 +4,7 @@
 
 import { ref, onMounted, onUnmounted, watch, type Ref } from 'vue';
 import { AudioPlayer } from '@ldesign/player-core';
-import type { AudioPlayerOptions as AudioPlayerConfig } from '@ldesign/player-core';
+import type { AudioPlayerConfig } from '@ldesign/player-core';
 
 export interface UseAudioPlayerOptions extends Partial<AudioPlayerConfig> {
   autoInit?: boolean

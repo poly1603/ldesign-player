@@ -32,11 +32,6 @@
       "require": "./dist/vue.cjs.js",
       "types": "./dist/vue.d.ts"
     },
-    "./react": {
-      "import": "./dist/react.esm.js",
-      "require": "./dist/react.cjs.js",
-      "types": "./dist/react.d.ts"
-    },
     "./style.css": "./dist/style.css"
   },
   "files": [
@@ -58,15 +53,6 @@
   },
   "peerDependencies": {
     "vue": "^3.0.0",
-    "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
-  },
-  "peerDependenciesMeta": {
-    "vue": {
-      "optional": true
-    },
-    "react": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@ldesign/builder": "workspace:*",
