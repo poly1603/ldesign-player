@@ -52,7 +52,7 @@
     "howler": "^2.2.4"
   },
   "peerDependencies": {
-    "vue": "^3.0.0",
+    "vue": "^3.0.0"
   },
   "devDependencies": {
     "@ldesign/builder": "workspace:*",
