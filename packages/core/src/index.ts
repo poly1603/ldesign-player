@@ -18,6 +18,7 @@ export * from './audio/Equalizer'
 export * from './audio/LyricsParser'
 export * from './audio/PlaylistManager'
 export * from './audio/WaveformRenderer'
+export * from './audio/CustomAudioPlayer'
 
 // Video Features
 export * from './video/SubtitleParser'
@@ -28,8 +29,22 @@ export * from './types'
 
 // Utils
 export * from './utils/helpers';
+export {
+  rafThrottle,
+  LazyLoader,
+  ObjectPool,
+  MemoryAwareCache,
+  createLazyObserver,
+  measureTime,
+  measureTimeAsync,
+  globalLazyLoader
+} from './utils/performance';
+
+// Audio Visualizer
+export * from './audio/AudioVisualizer';
 
 // 导出新功能
+export * from './features/KeyboardControl';
 export * from './features/PlayHistory';
 export * from './features/ABLoop';
 export * from './features/OfflineCache';
@@ -38,3 +53,7 @@ export * from './features/PlaybackRateMemory';
 export * from './features/QualitySwitcher';
 export * from './features/GestureControl';
 export * from './features/MiniPlayer';
+export * from './features/VideoRotate';
+export * from './features/Screenshot';
+export * from './features/Danmaku';
+export * from './features/VideoDownload';

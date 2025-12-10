@@ -7,6 +7,10 @@ import '../styles/custom-video-player.css';
 import * as LucideIcons from 'lucide';
 import { ThemePackage } from '../themes/ThemePackage';
 import { SpringFestivalTheme } from '../themes/SpringFestivalTheme';
+import { VideoRotate } from '../features/VideoRotate';
+import { Screenshot } from '../features/Screenshot';
+import { VideoDownload } from '../features/VideoDownload';
+import { Danmaku, DanmakuItem } from '../features/Danmaku';
 
 export type ControlsVisibilityMode = 'always' | 'never' | 'hover';
 
@@ -73,18 +77,27 @@ export interface CustomVideoPlayerOptions {
   preload?: 'none' | 'metadata' | 'auto';
   width?: number | string;
   height?: number | string;
-  aspectRatio?: string; // 例如 "16:9", "4:3"
-  poster?: string | boolean | number; // 封面图：字符串URL，true/undefined自动截取第1秒，数字表示截取第几秒（单位：秒）
-  /** 工具栏显示/隐藏配置 */
+  aspectRatio?: string;
+  poster?: string | boolean | number;
   controlsVisibility?: ControlsVisibilityConfig;
-  /** 进度条位置：'top' 顶部显示（默认），'inline' 内联显示（播放按钮后面，时间前面） */
   progressBarPosition?: ProgressBarPosition;
-  /** 圆角大小，支持数字（px）或字符串（如 '8px', '50%'），默认为 0 */
   borderRadius?: number | string;
-  /** 播放器主题：预设主题名称或自定义主题对象 */
   theme?: ThemeName | PlayerTheme;
-  /** 主题包：使用 Canvas 绘制的主题包 */
   themePackage?: ThemePackage | ThemeName;
+  /** 紧凑模式：进度条和按钮在同一行 */
+  compactMode?: boolean;
+  /** 是否启用弹幕功能 */
+  danmaku?: boolean;
+  /** 初始弹幕数据 */
+  danmakuData?: DanmakuItem[];
+  /** 弹幕速度（像素/秒），默认150 */
+  danmakuSpeed?: number;
+  /** 弹幕字体大小，默认24 */
+  danmakuFontSize?: number;
+  /** 弹幕轨道数量，默认8 */
+  danmakuTrackCount?: number;
+  /** 弹幕显示区域高度比例(0-1)，默认0.75 */
+  danmakuAreaRatio?: number;
 }
 
 export class CustomVideoPlayer {
@@ -113,6 +126,16 @@ export class CustomVideoPlayer {
   private speedMenu: HTMLElement;
   private pipBtn: HTMLElement;
   private speedOptions: NodeListOf<HTMLElement>;
+  private rotateBtn: HTMLElement;
+  private screenshotBtn: HTMLElement;
+  private downloadBtn: HTMLElement;
+
+  // 功能实例
+  private videoRotate: VideoRotate | null = null;
+  private screenshot: Screenshot | null = null;
+  private danmakuInstance: Danmaku | null = null;
+  private danmakuBtn: HTMLElement | null = null;
+  private resizeObserver: ResizeObserver | null = null;
 
   private isDragging = false;
   private isDraggingVolume = false;
@@ -132,7 +155,7 @@ export class CustomVideoPlayer {
 
   constructor(options: CustomVideoPlayerOptions) {
     this.options = options;
-    
+
     // 获取容器
     if (typeof options.container === 'string') {
       const el = document.querySelector(options.container);
@@ -156,10 +179,10 @@ export class CustomVideoPlayer {
     // 创建播放器容器
     this.playerContainer = document.createElement('div');
     this.playerContainer.className = 'custom-video-player-container';
-    
+
     const progressBarPosition = this.options.progressBarPosition || 'top';
     const isInline = progressBarPosition === 'inline';
-    
+
     // 根据配置生成不同的HTML结构
     const progressContainerHTML = `
       <div class="progress-container ${isInline ? 'progress-inline' : 'progress-top'}" id="progress-container">
@@ -171,7 +194,7 @@ export class CustomVideoPlayer {
         </div>
       </div>
     `;
-    
+
     const controlsLeftHTML = isInline
       ? `
         <div class="controls-left">
@@ -194,7 +217,7 @@ export class CustomVideoPlayer {
           </div>
         </div>
       `;
-    
+
     this.playerContainer.innerHTML = `
       <video id="custom-video-element" preload="${this.options.preload || 'metadata'}" crossOrigin="anonymous"></video>
       <div class="video-poster-overlay" id="video-poster-overlay"></div>
@@ -233,6 +256,15 @@ export class CustomVideoPlayer {
                 </div>
               </div>
             </div>
+            <button class="rotate-btn control-btn" id="rotate-btn" aria-label="旋转" title="旋转视频">
+              <i data-lucide="rotate-cw"></i>
+            </button>
+            <button class="screenshot-btn control-btn" id="screenshot-btn" aria-label="截图" title="截取当前帧">
+              <i data-lucide="camera"></i>
+            </button>
+            <button class="download-btn control-btn" id="download-btn" aria-label="下载" title="下载视频">
+              <i data-lucide="download"></i>
+            </button>
             <button class="pip-btn" id="pip-btn" aria-label="画中画" style="display: none;">
               <i data-lucide="picture-in-picture"></i>
             </button>
@@ -257,13 +289,13 @@ export class CustomVideoPlayer {
     this.progressContainer = this.playerContainer.querySelector('#progress-container') as HTMLElement;
     this.progressBar = this.playerContainer.querySelector('#progress-bar') as HTMLElement;
     this.bufferBar = this.playerContainer.querySelector('#buffer-bar') as HTMLElement;
-        this.progressPreview = this.playerContainer.querySelector('#progress-preview') as HTMLElement;
-        this.progressPreviewImage = this.playerContainer.querySelector('#progress-preview-image') as HTMLImageElement;
-        this.progressPreviewTime = this.playerContainer.querySelector('#progress-preview-time') as HTMLElement;
-        
-        // 确保预览容器初始状态正确
-        this.progressPreview.style.display = 'block';
-        this.progressPreviewImage.style.display = 'block';
+    this.progressPreview = this.playerContainer.querySelector('#progress-preview') as HTMLElement;
+    this.progressPreviewImage = this.playerContainer.querySelector('#progress-preview-image') as HTMLImageElement;
+    this.progressPreviewTime = this.playerContainer.querySelector('#progress-preview-time') as HTMLElement;
+
+    // 确保预览容器初始状态正确
+    this.progressPreview.style.display = 'block';
+    this.progressPreviewImage.style.display = 'block';
     this.currentTimeDisplay = this.playerContainer.querySelector('#current-time') as HTMLElement;
     this.durationDisplay = this.playerContainer.querySelector('#duration') as HTMLElement;
     this.volumeBtn = this.playerContainer.querySelector('#volume-btn') as HTMLElement;
@@ -278,6 +310,9 @@ export class CustomVideoPlayer {
     this.speedBtn = this.playerContainer.querySelector('#speed-btn') as HTMLElement;
     this.speedMenu = this.playerContainer.querySelector('#speed-menu') as HTMLElement;
     this.pipBtn = this.playerContainer.querySelector('#pip-btn') as HTMLElement;
+    this.rotateBtn = this.playerContainer.querySelector('#rotate-btn') as HTMLElement;
+    this.screenshotBtn = this.playerContainer.querySelector('#screenshot-btn') as HTMLElement;
+    this.downloadBtn = this.playerContainer.querySelector('#download-btn') as HTMLElement;
     this.speedOptions = this.playerContainer.querySelectorAll('.speed-option');
 
     // 设置视频源
@@ -369,7 +404,7 @@ export class CustomVideoPlayer {
   private setBorderRadius(): void {
     const borderRadius = this.options.borderRadius ?? 0;
     let borderRadiusValue: string;
-    
+
     if (typeof borderRadius === 'number') {
       borderRadiusValue = `${borderRadius}px`;
     } else {
@@ -378,10 +413,10 @@ export class CustomVideoPlayer {
 
     // 设置容器圆角
     this.playerContainer.style.borderRadius = borderRadiusValue;
-    
+
     // 设置视频元素圆角（需要配合 overflow: hidden）
     this.video.style.borderRadius = borderRadiusValue;
-    
+
     // 设置 poster overlay 圆角
     if (this.posterOverlay) {
       this.posterOverlay.style.borderRadius = borderRadiusValue;
@@ -667,7 +702,7 @@ export class CustomVideoPlayer {
       img.src = getImageData();
       return;
     }
-    
+
     // 如果没有 img，查找 SVG 或 i 标签并替换
     const icon = button.querySelector('i[data-lucide]') || button.querySelector('svg');
     if (icon) {
@@ -691,7 +726,7 @@ export class CustomVideoPlayer {
     // 隐藏原有的进度条样式
     this.progressBar.style.background = 'transparent';
     this.progressContainer.style.background = 'transparent';
-    
+
     // 隐藏 CSS ::after 滑块（使用主题包时）
     this.progressBar.classList.add('theme-package-thumb');
 
@@ -750,7 +785,7 @@ export class CustomVideoPlayer {
     thumbCanvas.style.pointerEvents = 'none';
     thumbCanvas.style.zIndex = '3';
     thumbCanvas.style.transition = 'opacity 0.2s';
-    
+
     // 创建预览位置的滑块 Canvas（鼠标悬停时显示）
     const previewThumbCanvas = document.createElement('canvas');
     previewThumbCanvas.className = 'theme-progress-preview-thumb-canvas';
@@ -761,32 +796,32 @@ export class CustomVideoPlayer {
     previewThumbCanvas.style.zIndex = '4';
     previewThumbCanvas.style.transition = 'opacity 0.2s';
     previewThumbCanvas.style.opacity = '0';
-    
+
     const thumbSize = 16; // 默认滑块大小
     thumbCanvas.width = thumbSize;
     thumbCanvas.height = thumbSize;
     thumbCanvas.style.width = `${thumbSize}px`;
     thumbCanvas.style.height = `${thumbSize}px`;
-    
+
     previewThumbCanvas.width = thumbSize;
     previewThumbCanvas.height = thumbSize;
     previewThumbCanvas.style.width = `${thumbSize}px`;
     previewThumbCanvas.style.height = `${thumbSize}px`;
-    
+
     let isHovering = false;
     let hoverTimeout: number | null = null;
     let previewProgress = 0; // 预览位置的进度
-    
+
     // 更新当前播放位置的滑块
     const updateThumb = (progress: number) => {
       const rect = this.progressContainer.getBoundingClientRect();
       const thumbX = rect.width * progress;
       thumbCanvas.style.left = `${thumbX}px`;
       thumbCanvas.style.marginLeft = `-${thumbSize / 2}px`;
-      
+
       // 绘制滑块（当前播放位置，不使用悬停效果）
       themePackage.drawProgressBarThumb(thumbCanvas, thumbSize, progress, false);
-      
+
       // 显示/隐藏滑块：播放时显示（稍微透明），拖拽时完全显示
       const isPlaying = !this.video.paused;
       if (this.isDragging) {
@@ -799,7 +834,7 @@ export class CustomVideoPlayer {
         thumbCanvas.style.opacity = '0';
       }
     };
-    
+
     // 更新预览位置的滑块（鼠标悬停位置）
     const updatePreviewThumb = (progress: number) => {
       previewProgress = progress;
@@ -807,10 +842,10 @@ export class CustomVideoPlayer {
       const thumbX = rect.width * progress;
       previewThumbCanvas.style.left = `${thumbX}px`;
       previewThumbCanvas.style.marginLeft = `-${thumbSize / 2}px`;
-      
+
       // 绘制预览滑块（使用悬停效果）
       themePackage.drawProgressBarThumb(previewThumbCanvas, thumbSize, progress, true);
-      
+
       // 只在悬停时显示预览滑块
       if (isHovering && !this.isDragging) {
         previewThumbCanvas.style.opacity = '1';
@@ -818,14 +853,14 @@ export class CustomVideoPlayer {
         previewThumbCanvas.style.opacity = '0';
       }
     };
-    
+
     // 初始更新
     const initialProgress = this.video.duration ? this.video.currentTime / this.video.duration : 0;
     updateThumb(initialProgress);
-    
+
     this.progressContainer.appendChild(thumbCanvas);
     this.progressContainer.appendChild(previewThumbCanvas);
-    
+
     // 监听进度条悬停
     this.progressContainer.addEventListener('mouseenter', () => {
       isHovering = true;
@@ -833,7 +868,7 @@ export class CustomVideoPlayer {
         clearTimeout(hoverTimeout);
       }
     });
-    
+
     this.progressContainer.addEventListener('mouseleave', () => {
       isHovering = false;
       previewThumbCanvas.style.opacity = '0';
@@ -844,7 +879,7 @@ export class CustomVideoPlayer {
         }, 200);
       }
     });
-    
+
     // 注意：mousemove 事件监听已在 initEventListeners 中处理，这里不需要重复添加
     // 滑块位置更新会在 updateProgress 和 seekTo 中通过 _updateProgressThumb 调用
 
@@ -884,7 +919,7 @@ export class CustomVideoPlayer {
 
   private setPoster(): void {
     const poster = this.options.poster;
-    
+
     if (typeof poster === 'string') {
       // 如果设置了字符串 URL，直接使用
       this.video.poster = poster;
@@ -921,16 +956,16 @@ export class CustomVideoPlayer {
     if (this.posterSettingInProgress) {
       return;
     }
-    
+
     // 如果poster已经设置，直接返回
     if (this.video.poster) {
       this.video.style.visibility = 'visible';
       this.video.style.opacity = '1';
       return;
     }
-    
+
     this.posterSettingInProgress = true;
-    
+
     try {
       // 确保视频有 duration 和尺寸信息
       if (!this.video.duration || isNaN(this.video.duration) || !this.video.videoWidth || !this.video.videoHeight) {
@@ -941,19 +976,19 @@ export class CustomVideoPlayer {
           // 即使metadata不完整，也要恢复可见性
           this.video.style.visibility = 'visible';
           this.video.style.opacity = '1';
-          
+
           // 标记poster设置完成
           this.posterSettingInProgress = false;
           return;
         }
       }
-      
+
       // 确保视频暂停
       this.video.pause();
-      
+
       // 保存当前时间，以便恢复
       const originalTime = this.video.currentTime;
-      
+
       // 确保视频暂停在时间 0，这样 poster 才会显示
       this.video.pause();
       if (Math.abs(this.video.currentTime) > 0.1) {
@@ -964,7 +999,7 @@ export class CustomVideoPlayer {
           };
           this.video.addEventListener('seeked', onSeeked);
           this.video.currentTime = 0;
-          
+
           // 超时保护
           setTimeout(() => {
             this.video.removeEventListener('seeked', onSeeked);
@@ -974,31 +1009,31 @@ export class CustomVideoPlayer {
       } else {
         this.video.currentTime = 0;
       }
-      
+
       // 直接调用 captureVideoFrame，它会处理跳转到指定时间
       const posterDataUrl = await this.captureVideoFrame(timeInSeconds);
       if (posterDataUrl) {
         console.log('Poster captured, setting poster attribute');
-        
+
         // 先设置背景图片，确保立即显示
         this.video.style.backgroundImage = `url(${posterDataUrl})`;
         this.video.style.backgroundSize = 'cover';
         this.video.style.backgroundPosition = 'center';
         this.video.style.backgroundRepeat = 'no-repeat';
-        
+
         // 设置poster overlay的背景图片
         if (this.posterOverlay) {
           this.posterOverlay.style.backgroundImage = `url(${posterDataUrl})`;
           this.posterOverlay.classList.add('show');
         }
-        
+
         // 设置 poster 属性
         this.video.poster = posterDataUrl;
-        
+
         // 确保视频暂停在时间 0
         this.video.pause();
         this.video.currentTime = 0;
-        
+
         // 等待视频跳转到时间0
         await new Promise<void>((resolve) => {
           const onSeeked = () => {
@@ -1011,26 +1046,26 @@ export class CustomVideoPlayer {
             resolve();
           }, 500);
         });
-        
+
         // 再次确保视频暂停在时间 0
         this.video.pause();
         this.video.currentTime = 0;
-        
+
         // 等待 poster 设置完成
         await new Promise(resolve => setTimeout(resolve, 200));
-        
+
         // 检查 poster 是否设置成功
         if (this.video.poster) {
           console.log('Poster set successfully:', this.video.poster.substring(0, 50) + '...');
         }
-        
+
         // 恢复视频元素可见性
         this.video.style.visibility = 'visible';
         this.video.style.opacity = '1';
-        
+
         // 移除playing类，确保poster显示
         this.video.classList.remove('playing');
-        
+
         // 标记poster设置完成
         this.posterSettingInProgress = false;
       } else {
@@ -1042,7 +1077,7 @@ export class CustomVideoPlayer {
         // 即使失败也要恢复可见性
         this.video.style.visibility = 'visible';
         this.video.style.opacity = '1';
-        
+
         // 标记poster设置完成
         this.posterSettingInProgress = false;
       }
@@ -1051,7 +1086,7 @@ export class CustomVideoPlayer {
       // 即使出错也要恢复可见性
       this.video.style.visibility = 'visible';
       this.video.style.opacity = '1';
-      
+
       // 标记poster设置完成
       this.posterSettingInProgress = false;
     }
@@ -1087,7 +1122,7 @@ export class CustomVideoPlayer {
         this.thumbnailVideo.style.zIndex = '-1';
         document.body.appendChild(this.thumbnailVideo);
       }
-      
+
       // 如果隐藏视频还没有加载源，设置源
       if (!this.thumbnailVideo.src || this.thumbnailVideo.src !== this.video.src) {
         this.thumbnailVideo.src = this.video.src;
@@ -1119,7 +1154,7 @@ export class CustomVideoPlayer {
           }
         });
       }
-      
+
       const videoToCapture = this.thumbnailVideo;
 
       // 确保视频尺寸有效，如果还没有，等待一下
@@ -1152,7 +1187,7 @@ export class CustomVideoPlayer {
       resolve(null);
       return;
     }
-    
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
@@ -1185,14 +1220,14 @@ export class CustomVideoPlayer {
         if (!video.paused) {
           video.pause();
         }
-        
+
         // 等待多个动画帧确保视频帧已完全渲染
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             try {
               // 绘制视频帧到 canvas
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              
+
               // 转换为 base64 数据 URL
               const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
               resolve(dataUrl);
@@ -1213,7 +1248,7 @@ export class CustomVideoPlayer {
       // 需要跳转到指定帧
       let timeoutId: number | null = null;
       let seeked = false;
-      
+
       const onSeeked = () => {
         if (seeked) return;
         seeked = true;
@@ -1222,7 +1257,7 @@ export class CustomVideoPlayer {
           timeoutId = null;
         }
         video.removeEventListener('seeked', onSeeked);
-        
+
         // 等待多个动画帧确保视频帧已完全渲染
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
@@ -1232,7 +1267,7 @@ export class CustomVideoPlayer {
           });
         });
       };
-      
+
       // 设置超时，防止 seeked 事件不触发
       timeoutId = window.setTimeout(() => {
         if (!seeked) {
@@ -1248,7 +1283,7 @@ export class CustomVideoPlayer {
           });
         }
       }, 2000);
-      
+
       video.addEventListener('seeked', onSeeked);
       video.currentTime = targetTime;
     } else {
@@ -1257,7 +1292,7 @@ export class CustomVideoPlayer {
       if (Math.abs(video.currentTime - targetTime) > 0.1) {
         let timeoutId: number | null = null;
         let seeked = false;
-        
+
         const onSeeked = () => {
           if (seeked) return;
           seeked = true;
@@ -1268,7 +1303,7 @@ export class CustomVideoPlayer {
           video.removeEventListener('seeked', onSeeked);
           captureFrame();
         };
-        
+
         timeoutId = window.setTimeout(() => {
           if (!seeked) {
             seeked = true;
@@ -1276,7 +1311,7 @@ export class CustomVideoPlayer {
             captureFrame();
           }
         }, 1000);
-        
+
         video.addEventListener('seeked', onSeeked);
         video.currentTime = targetTime;
       } else {
@@ -1325,7 +1360,7 @@ export class CustomVideoPlayer {
       if (poster === true || poster === undefined || typeof poster === 'number') {
         // true 或 undefined 使用第1秒，数字直接使用秒数
         const timeInSeconds = typeof poster === 'number' ? poster : (poster === true ? 1 : 0);
-        
+
         // 使用 loadeddata 事件，这时视频的第一帧已经加载完成
         // 如果视频数据已经加载，直接处理
         if (this.video.readyState >= 2) {
@@ -1549,6 +1584,24 @@ export class CustomVideoPlayer {
       this.togglePiP();
     });
 
+    // 旋转按钮
+    this.rotateBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.rotateVideo();
+    });
+
+    // 截图按钮
+    this.screenshotBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.takeScreenshot();
+    });
+
+    // 下载按钮
+    this.downloadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.downloadVideo();
+    });
+
     // 点击外部关闭速度菜单
     document.addEventListener('click', (e) => {
       if (!this.speedBtn.contains(e.target as Node) && !this.speedMenu.contains(e.target as Node)) {
@@ -1559,8 +1612,8 @@ export class CustomVideoPlayer {
     // 键盘快捷键
     document.addEventListener('keydown', (e) => {
       if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
-      
-      switch(e.code) {
+
+      switch (e.code) {
         case 'Space':
           e.preventDefault();
           this.togglePlayPause();
@@ -1598,20 +1651,58 @@ export class CustomVideoPlayer {
   private initState(): void {
     this.updateVolumeBar();
     this.updateBufferProgress();
-    // 初始化工具栏显示状态
     this.updateControlsVisibility();
     this.checkPiPSupport();
     this.video.playbackRate = 1;
-    
+
     if (this.video.paused) {
       this.centerPlayBtn.classList.add('show');
     } else {
       this.centerPlayBtn.classList.remove('show');
     }
-    
+
+    // 紧凑模式
+    if (this.options.compactMode) {
+      this.customControls.classList.add('compact-mode');
+    }
+
+    // 初始化弹幕
+    if (this.options.danmaku) {
+      this.initDanmaku();
+    }
+
+    // 响应式尺寸检测
+    this.initResizeObserver();
+
     // 确保 DOM 完全渲染后再更新图标
     requestAnimationFrame(() => {
       this.updateIcons();
+    });
+  }
+
+  private initResizeObserver(): void {
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        if (width < 500) {
+          this.playerContainer.classList.add('size-small');
+        } else {
+          this.playerContainer.classList.remove('size-small');
+        }
+      }
+    });
+    this.resizeObserver.observe(this.playerContainer);
+  }
+
+  private initDanmaku(): void {
+    this.danmakuInstance = new Danmaku({
+      container: this.playerContainer,
+      video: this.video,
+      data: this.options.danmakuData || [],
+      speed: this.options.danmakuSpeed,
+      fontSize: this.options.danmakuFontSize,
+      trackCount: this.options.danmakuTrackCount,
+      areaRatio: this.options.danmakuAreaRatio,
     });
   }
 
@@ -1621,13 +1712,13 @@ export class CustomVideoPlayer {
       .split('-')
       .map(part => part.charAt(0).toUpperCase() + part.slice(1))
       .join('');
-    
+
     return (LucideIcons as any)[pascalName] || (LucideIcons as any).Play;
   }
 
   private renderIcon(iconName: string, size: number = 24, strokeWidth: number = 2): SVGElement {
     const IconComponent = this.getIconComponent(iconName);
-    
+
     // 创建 SVG 元素
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('width', size.toString());
@@ -1638,11 +1729,11 @@ export class CustomVideoPlayer {
     svg.setAttribute('stroke-width', strokeWidth.toString());
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
-    
+
     try {
       // lucide 图标数据是一个数组: [tag, attrs, children]
       let iconData: any = null;
-      
+
       if (typeof IconComponent === 'function') {
         // 如果是函数，调用它获取图标数据
         iconData = IconComponent({ size, strokeWidth });
@@ -1653,12 +1744,12 @@ export class CustomVideoPlayer {
         // 可能是对象格式
         iconData = IconComponent;
       }
-      
+
       if (iconData) {
         // lucide 图标数据结构: [tag, attrs, children]
         if (Array.isArray(iconData) && iconData.length >= 2) {
           const [tag, attrs = {}, children = []] = iconData;
-          
+
           if (tag === 'svg') {
             // 递归构建子元素
             this.buildChildren(svg, children, strokeWidth);
@@ -1674,30 +1765,30 @@ export class CustomVideoPlayer {
     } catch (error) {
       console.warn(`Failed to render icon ${iconName}:`, error);
     }
-    
+
     // 如果没有成功添加路径，添加一个默认路径
     if (svg.children.length === 0) {
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', 'M12 2L2 7l10 5 10-5-10-5z');
       svg.appendChild(path);
     }
-    
+
     return svg;
   }
 
   private buildChildren(parent: SVGElement, children: any[], strokeWidth: number): void {
     if (!children || !Array.isArray(children)) return;
-    
+
     children.forEach((child: any) => {
       if (Array.isArray(child) && child.length >= 2) {
         // lucide 数据结构: [tag, attrs, children]
         const [tag, attrs = {}, childNodes = []] = child;
-        
-        if (tag === 'path' || tag === 'circle' || tag === 'rect' || 
-            tag === 'line' || tag === 'polyline' || tag === 'polygon' || 
-            tag === 'ellipse') {
+
+        if (tag === 'path' || tag === 'circle' || tag === 'rect' ||
+          tag === 'line' || tag === 'polyline' || tag === 'polygon' ||
+          tag === 'ellipse') {
           const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
-          
+
           // 设置属性
           Object.keys(attrs).forEach(key => {
             const value = attrs[key];
@@ -1705,14 +1796,14 @@ export class CustomVideoPlayer {
               element.setAttribute(key, value.toString());
             }
           });
-          
+
           // 确保 stroke-width 被设置
           if (!attrs['stroke-width']) {
             element.setAttribute('stroke-width', strokeWidth.toString());
           }
-          
+
           parent.appendChild(element);
-          
+
           // 递归处理子元素
           if (childNodes && childNodes.length > 0) {
             this.buildChildren(element, childNodes, strokeWidth);
@@ -1741,11 +1832,11 @@ export class CustomVideoPlayer {
 
   private updateSingleIcon(buttonElement: HTMLElement, iconName: string): void {
     if (!buttonElement) return;
-    
+
     // 移除所有现有的 SVG
     const allSvgs = buttonElement.querySelectorAll('svg');
     allSvgs.forEach(svg => svg.remove());
-    
+
     // 移除或清空 <i> 标签
     let iconElement = buttonElement.querySelector('i');
     if (iconElement) {
@@ -1756,7 +1847,7 @@ export class CustomVideoPlayer {
       iconElement = document.createElement('i');
       buttonElement.appendChild(iconElement);
     }
-    
+
     // 创建并插入 SVG 图标
     const svg = this.renderIcon(iconName);
     iconElement.appendChild(svg);
@@ -1773,7 +1864,7 @@ export class CustomVideoPlayer {
     const playPauseIconName = this.video.paused ? 'play' : 'pause';
     this.updateSingleIcon(this.playPauseBtn, playPauseIconName);
     this.updateSingleIcon(this.centerPlayBtn, 'play');
-    
+
     let volumeIconName = 'volume-2';
     if (this.video.muted || this.video.volume === 0) {
       volumeIconName = 'volume-x';
@@ -1781,19 +1872,24 @@ export class CustomVideoPlayer {
       volumeIconName = 'volume-1';
     }
     this.updateSingleIcon(this.volumeBtn, volumeIconName);
-    
+
     // 更新速度按钮图标
     this.updateSingleIcon(this.speedBtn, 'gauge');
-    
+
     const fullscreenIconName = document.fullscreenElement === this.playerContainer ? 'minimize' : 'maximize';
     this.updateSingleIcon(this.fullscreenBtn, fullscreenIconName);
-    
+
     // 页面全屏按钮图标：如果整个页面全屏，显示 minimize-2，否则显示 maximize-2
     const pageFullscreenIconName = document.fullscreenElement === document.documentElement ? 'minimize-2' : 'maximize-2';
     this.updateSingleIcon(this.pageFullscreenBtn, pageFullscreenIconName);
-    
+
     const pipIconName = document.pictureInPictureElement ? 'picture-in-picture-2' : 'picture-in-picture';
     this.updateSingleIcon(this.pipBtn, pipIconName);
+
+    // 新增功能按钮图标
+    this.updateSingleIcon(this.rotateBtn, 'rotate-cw');
+    this.updateSingleIcon(this.screenshotBtn, 'camera');
+    this.updateSingleIcon(this.downloadBtn, 'download');
   }
 
   private formatTime(seconds: number): string {
@@ -1801,7 +1897,7 @@ export class CustomVideoPlayer {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    
+
     if (hours > 0) {
       return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
@@ -1813,7 +1909,7 @@ export class CustomVideoPlayer {
       const percent = (this.video.currentTime / this.video.duration) * 100;
       const progress = this.video.currentTime / this.video.duration;
       this.progressBar.style.width = percent + '%';
-      
+
       // 如果使用了主题包，更新进度条填充 Canvas 和滑块
       if (this.currentThemePackage && (this as any)._updateProgressFill) {
         (this as any)._updateProgressFill();
@@ -1821,7 +1917,7 @@ export class CustomVideoPlayer {
       if (this.currentThemePackage && (this as any)._updateProgressThumb) {
         (this as any)._updateProgressThumb(progress);
       }
-      
+
       // 更新简单进度条
       if (this.miniProgressBar) {
         const miniProgressBarFill = this.miniProgressBar.querySelector('#mini-progress-bar-fill') as HTMLElement;
@@ -1945,11 +2041,11 @@ export class CustomVideoPlayer {
         }
         break;
     }
-    
+
     const afterClasses = this.customControls.className;
     const computedOpacity = window.getComputedStyle(this.customControls).opacity;
-    console.log('[updateControlsVisibility] 更新后', { 
-      before: beforeClasses, 
+    console.log('[updateControlsVisibility] 更新后', {
+      before: beforeClasses,
       after: afterClasses,
       computedOpacity,
       elementVisible: this.customControls.offsetParent !== null
@@ -1980,24 +2076,24 @@ export class CustomVideoPlayer {
     this.customControls.classList.remove('never-visible');
     this.customControls.classList.add('hover-only', 'visible');
     const afterClasses = this.customControls.className;
-    
+
     console.log('[showControls] 类名变化', { before: beforeClasses, after: afterClasses });
-    
+
     // 强制设置 opacity（通过内联样式确保优先级）
     this.customControls.style.opacity = '1';
-    
+
     const computedOpacity = window.getComputedStyle(this.customControls).opacity;
-    console.log('[showControls] 样式检查', { 
+    console.log('[showControls] 样式检查', {
       inlineOpacity: this.customControls.style.opacity,
       computedOpacity,
       elementVisible: this.customControls.offsetParent !== null
     });
-    
+
     // 工具栏显示时，立即隐藏简单进度条
     if (this.miniProgressBar) {
       this.miniProgressBar.classList.remove('show');
     }
-    
+
     // 如果正在播放，且模式是 hover，3秒后自动隐藏工具栏，并立即显示简单进度条
     if (isPlaying && mode === 'hover') {
       if (this.controlsTimeout) {
@@ -2068,7 +2164,7 @@ export class CustomVideoPlayer {
     const percent = (e.clientX - rect.left) / rect.width;
     const progress = Math.max(0, Math.min(1, percent));
     this.video.currentTime = progress * this.video.duration;
-    
+
     // 如果使用了主题包，更新滑块位置
     if (this.currentThemePackage && (this as any)._updateProgressThumb) {
       (this as any)._updateProgressThumb(progress);
@@ -2077,22 +2173,22 @@ export class CustomVideoPlayer {
 
   private showProgressPreview(e: MouseEvent): void {
     if (!this.video.duration) return;
-    
+
     // 确保预览容器存在
     if (!this.progressPreview || !this.progressPreviewImage || !this.progressPreviewTime) {
       return;
     }
-    
+
     const rect = this.progressContainer.getBoundingClientRect();
     const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const previewTime = percent * this.video.duration;
-    
+
     // 更新预览时间显示
     this.progressPreviewTime.textContent = this.formatTime(previewTime);
-    
+
     // 计算预览位置（使用百分比，配合 transform: translateX(-50%) 居中）
     let previewLeft = percent * 100;
-    
+
     // 边界检测：确保弹层不会超出屏幕
     // 使用 CSS 中定义的固定宽度 160px，或者尝试获取实际宽度
     let previewWidth = 160; // CSS 中定义的默认宽度
@@ -2106,21 +2202,21 @@ export class CustomVideoPlayer {
     } catch (e) {
       // 如果获取失败，使用默认值
     }
-    
+
     const previewHalfWidth = previewWidth / 2;
     const containerLeft = rect.left;
     const containerWidth = rect.width;
-    
+
     // 计算弹层中心点的绝对位置（相对于视口）
     const previewCenterX = containerLeft + (percent * containerWidth);
-    
+
     // 检查左边界
     if (previewCenterX < previewHalfWidth) {
       // 弹层会超出左边界，调整位置使其紧贴左边界
       const minLeftPercent = (previewHalfWidth - containerLeft) / containerWidth * 100;
       previewLeft = Math.max(0, minLeftPercent);
     }
-    
+
     // 检查右边界
     const viewportWidth = window.innerWidth;
     if (previewCenterX > viewportWidth - previewHalfWidth) {
@@ -2128,20 +2224,20 @@ export class CustomVideoPlayer {
       const maxLeftPercent = ((viewportWidth - previewHalfWidth) - containerLeft) / containerWidth * 100;
       previewLeft = Math.min(100, maxLeftPercent);
     }
-    
+
     // 更新预览位置
     this.progressPreview.style.left = `${previewLeft}%`;
-    
+
     // 确保预览容器可见
     if (!this.progressPreview.classList.contains('show')) {
       this.progressPreview.classList.add('show');
     }
-    
+
     // 延迟加载缩略图（防抖）
     if (this.previewThumbnailTimeout) {
       clearTimeout(this.previewThumbnailTimeout);
     }
-    
+
     this.previewThumbnailTimeout = window.setTimeout(() => {
       this.loadPreviewThumbnail(previewTime);
     }, 200);
@@ -2158,31 +2254,31 @@ export class CustomVideoPlayer {
   private async loadPreviewThumbnail(timeInSeconds: number): Promise<void> {
     // 四舍五入到整数秒，用于缓存
     const roundedTime = Math.round(timeInSeconds);
-    
+
     // 检查缓存
     if (this.previewThumbnailCache.has(roundedTime)) {
       const cachedUrl = this.previewThumbnailCache.get(roundedTime)!;
       this.progressPreviewImage.src = cachedUrl;
       return;
     }
-    
+
     // 如果已经有其他缩略图正在加载，取消它
     if (this.previewThumbnailLoading !== null && this.previewThumbnailLoading !== roundedTime) {
       // 不取消，让新的请求继续，但标记当前加载的时间
     }
-    
+
     // 标记当前正在加载的时间
     this.previewThumbnailLoading = roundedTime;
-    
+
     // 确保视频已加载元数据（至少需要 HAVE_METADATA）
     if (!this.video.duration || this.video.readyState < 1) {
       this.previewThumbnailLoading = null;
       return;
     }
-    
+
     // 保存当前时间
     const originalTime = this.video.currentTime;
-    
+
     // 如果目标时间与当前时间很接近（0.5秒内），直接使用当前帧
     if (Math.abs(originalTime - roundedTime) < 0.5) {
       try {
@@ -2190,22 +2286,22 @@ export class CustomVideoPlayer {
         if (this.previewThumbnailLoading !== roundedTime) {
           return;
         }
-        
+
         // 直接截取当前帧，不跳转
         const thumbnailDataUrl = await this.captureVideoFrameAtCurrentTime();
-        
+
         // 再次检查是否还是当前请求
         if (this.previewThumbnailLoading !== roundedTime) {
           return;
         }
-        
+
         if (thumbnailDataUrl && this.progressPreviewImage) {
           this.previewThumbnailCache.set(roundedTime, thumbnailDataUrl);
           this.progressPreviewImage.src = thumbnailDataUrl;
           this.progressPreviewImage.style.display = 'block';
           this.progressPreviewImage.style.opacity = '1';
         }
-        
+
         // 标记加载完成
         this.previewThumbnailLoading = null;
       } catch (error) {
@@ -2214,14 +2310,14 @@ export class CustomVideoPlayer {
       }
       return;
     }
-    
+
     // 需要跳转到目标时间截取
     try {
       // 如果视频正在播放，使用隐藏的视频元素截取，避免影响主视频
       const wasPlaying = !this.video.paused;
       let videoToCapture = this.video;
       let needRestoreTime = false;
-      
+
       if (wasPlaying) {
         // 创建或使用隐藏的视频元素
         if (!this.thumbnailVideo) {
@@ -2236,7 +2332,7 @@ export class CustomVideoPlayer {
           this.thumbnailVideo.style.pointerEvents = 'none';
           document.body.appendChild(this.thumbnailVideo);
         }
-        
+
         // 如果隐藏视频还没有加载源，设置源
         if (!this.thumbnailVideo.src || this.thumbnailVideo.src !== this.video.src) {
           this.thumbnailVideo.src = this.video.src;
@@ -2250,16 +2346,16 @@ export class CustomVideoPlayer {
             }
           });
         }
-        
+
         videoToCapture = this.thumbnailVideo;
       } else {
         // 视频暂停时，需要恢复时间
         needRestoreTime = true;
       }
-      
+
       // 跳转到目标时间
       videoToCapture.currentTime = roundedTime;
-      
+
       // 等待视频跳转完成并确保帧已渲染
       await new Promise<void>((resolve) => {
         let seeked = false;
@@ -2267,7 +2363,7 @@ export class CustomVideoPlayer {
           if (seeked) return;
           seeked = true;
           videoToCapture.removeEventListener('seeked', onSeeked);
-          
+
           // 等待多个动画帧确保视频帧已完全渲染
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -2278,7 +2374,7 @@ export class CustomVideoPlayer {
           });
         };
         videoToCapture.addEventListener('seeked', onSeeked);
-        
+
         // 设置超时，防止 seeked 事件不触发
         setTimeout(() => {
           if (!seeked) {
@@ -2292,7 +2388,7 @@ export class CustomVideoPlayer {
           }
         }, 500);
       });
-      
+
       // 检查是否还是当前请求（用户可能已经移动鼠标了）
       if (this.previewThumbnailLoading !== roundedTime) {
         // 如果需要恢复时间，先恢复
@@ -2301,27 +2397,27 @@ export class CustomVideoPlayer {
         }
         return;
       }
-      
+
       // 截取当前帧
       const thumbnailDataUrl = await this.captureVideoFrameFromElement(videoToCapture);
-      
+
       // 如果需要恢复时间，先恢复
       if (needRestoreTime && videoToCapture === this.video) {
         this.video.currentTime = originalTime;
       }
-      
+
       // 再次检查是否还是当前请求
       if (this.previewThumbnailLoading !== roundedTime) {
         return;
       }
-      
+
       if (thumbnailDataUrl && this.progressPreviewImage) {
         this.previewThumbnailCache.set(roundedTime, thumbnailDataUrl);
         this.progressPreviewImage.src = thumbnailDataUrl;
         this.progressPreviewImage.style.display = 'block';
         this.progressPreviewImage.style.opacity = '1';
       }
-      
+
       // 标记加载完成
       this.previewThumbnailLoading = null;
     } catch (error) {
@@ -2354,7 +2450,7 @@ export class CustomVideoPlayer {
         resolve(null);
         return;
       }
-      
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
@@ -2439,7 +2535,7 @@ export class CustomVideoPlayer {
       // 清除现有 SVG
       const svgs = iconElement.querySelectorAll('svg');
       svgs.forEach(svg => svg.remove());
-      
+
       // 检查是否是 active 选项
       const option = iconElement.closest('.speed-option');
       if (option && option.classList.contains('active')) {
@@ -2452,12 +2548,12 @@ export class CustomVideoPlayer {
   private setPlaybackSpeed(speed: string): void {
     this.currentSpeed = parseFloat(speed);
     this.video.playbackRate = this.currentSpeed;
-    
+
     this.speedOptions.forEach(option => {
       const iconElement = option.querySelector('.speed-option-icon') as HTMLElement;
       const svgs = iconElement?.querySelectorAll('svg') || [];
       svgs.forEach(svg => svg.remove());
-      
+
       if (parseFloat(option.dataset.speed!) === this.currentSpeed) {
         option.classList.add('active');
         // 添加 check 图标
@@ -2469,7 +2565,7 @@ export class CustomVideoPlayer {
         option.classList.remove('active');
       }
     });
-    
+
     this.speedMenu.classList.remove('show');
   }
 
@@ -2492,6 +2588,14 @@ export class CustomVideoPlayer {
   }
 
   // 公共 API
+  public getVideo(): HTMLVideoElement {
+    return this.video;
+  }
+
+  public getContainer(): HTMLElement {
+    return this.playerContainer;
+  }
+
   public setSrc(src: string): void {
     this.video.src = src;
   }
@@ -2504,18 +2608,169 @@ export class CustomVideoPlayer {
     this.video.pause();
   }
 
+  public seek(time: number): void {
+    this.video.currentTime = time;
+  }
+
+  public setVolume(volume: number): void {
+    this.video.volume = Math.max(0, Math.min(1, volume));
+    this.updateVolumeUI();
+  }
+
+  public getVolume(): number {
+    return this.video.volume;
+  }
+
+  public getCurrentTime(): number {
+    return this.video.currentTime;
+  }
+
+  public getDuration(): number {
+    return this.video.duration;
+  }
+
+  public setPlaybackRate(rate: number): void {
+    this.setPlaybackSpeed(String(rate));
+  }
+
+  public getPlaybackRate(): number {
+    return this.currentSpeed;
+  }
+
+  /**
+   * 设置主题色
+   * @param primary 主色调，如 '#6366f1'
+   * @param secondary 辅助色调（可选）
+   */
   public setThemeColor(primary: string, secondary?: string): void {
-    document.documentElement.style.setProperty('--theme-color', primary);
+    this.playerContainer.style.setProperty('--theme-color', primary);
     if (secondary) {
-      document.documentElement.style.setProperty('--theme-color-secondary', secondary);
+      this.playerContainer.style.setProperty('--theme-color-secondary', secondary);
     }
   }
 
+  /**
+   * 获取当前主题色
+   */
+  public getThemeColor(): { primary: string; secondary: string } {
+    const styles = getComputedStyle(this.playerContainer);
+    return {
+      primary: styles.getPropertyValue('--theme-color').trim() || '#6366f1',
+      secondary: styles.getPropertyValue('--theme-color-secondary').trim() || '#8b5cf6',
+    };
+  }
+
+  // 旋转视频
+  public rotateVideo(clockwise = true): void {
+    if (!this.videoRotate) {
+      this.videoRotate = new VideoRotate({
+        video: this.video,
+        container: this.playerContainer,
+      });
+    }
+    this.videoRotate.rotate(clockwise, true, 1);
+  }
+
+  // 截图
+  public async takeScreenshot(): Promise<void> {
+    if (!this.screenshot) {
+      this.screenshot = new Screenshot({
+        video: this.video,
+        format: 'png',
+      });
+    }
+    try {
+      await this.screenshot.download();
+    } catch (error) {
+      console.error('截图失败:', error);
+    }
+  }
+
+  // 下载视频
+  public downloadVideo(): void {
+    const download = new VideoDownload({
+      video: this.video,
+      onProgress: (percent) => {
+        console.log(`下载进度: ${percent.toFixed(1)}%`);
+      },
+      onComplete: () => {
+        console.log('下载完成');
+      },
+      onError: (error) => {
+        console.error('下载失败:', error);
+      },
+    });
+    // 使用快速下载方式（通过 a 标签）
+    download.quickDownload();
+  }
+
+  // 弹幕相关 API
+  public sendDanmaku(text: string, options?: Partial<DanmakuItem>): void {
+    this.danmakuInstance?.send(text, options);
+  }
+
+  public loadDanmaku(data: DanmakuItem[]): void {
+    this.danmakuInstance?.load(data);
+  }
+
+  public toggleDanmaku(visible?: boolean): void {
+    this.danmakuInstance?.toggle(visible);
+  }
+
+  public setDanmakuOpacity(opacity: number): void {
+    this.danmakuInstance?.setOpacity(opacity);
+  }
+
+  public setDanmakuSpeed(speed: number): void {
+    this.danmakuInstance?.setSpeed(speed);
+  }
+
+  public setDanmakuFontSize(size: number): void {
+    this.danmakuInstance?.setFontSize(size);
+  }
+
+  public clearDanmaku(): void {
+    this.danmakuInstance?.clear();
+  }
+
   public destroy(): void {
+    // 清理功能实例
+    this.videoRotate?.destroy();
+    this.screenshot?.destroy();
+    this.danmakuInstance?.destroy();
+    this.resizeObserver?.disconnect();
     // 清理事件监听器
     this.video.pause();
     this.video.src = '';
     this.playerContainer.remove();
+  }
+
+  private updateVolumeUI(): void {
+    const volume = this.video.volume;
+    const isMuted = this.video.muted;
+
+    // 更新音量条
+    this.volumeSliderPopupBar.style.height = `${volume * 100}%`;
+
+    // 更新音量图标
+    this.updateVolumeIcon(volume, isMuted);
+  }
+
+  private updateVolumeIcon(volume: number, isMuted: boolean): void {
+    let iconName: string;
+    if (isMuted || volume === 0) {
+      iconName = 'volume-x';
+    } else if (volume < 0.5) {
+      iconName = 'volume-1';
+    } else {
+      iconName = 'volume-2';
+    }
+
+    const icon = this.volumeBtn.querySelector('i[data-lucide]');
+    if (icon) {
+      icon.setAttribute('data-lucide', iconName);
+      this.updateIcons();
+    }
   }
 }
 

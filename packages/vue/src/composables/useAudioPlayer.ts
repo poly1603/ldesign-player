@@ -39,16 +39,19 @@ export function useAudioPlayer(options: UseAudioPlayerOptions = {}) {
         isPlaying.value = false
       })
 
-      player.value.on('timeupdate', (time: number) => {
-        currentTime.value = time
+      player.value.on('timeupdate', (data: any) => {
+        currentTime.value = data.currentTime
+        if (data.duration) {
+          duration.value = data.duration
+        }
       })
 
-      player.value.on('durationchange', (dur: number) => {
-        duration.value = dur
+      player.value.on('durationchange', (data: any) => {
+        duration.value = data.duration
       })
 
-      player.value.on('volumechange', (vol: number) => {
-        volume.value = vol
+      player.value.on('volumechange', (data: any) => {
+        volume.value = data.volume
       })
     }
   }
@@ -80,12 +83,12 @@ export function useAudioPlayer(options: UseAudioPlayerOptions = {}) {
 
   // 下一首
   const next = () => {
-    // 触发 next 事件
+    player.value?.next?.()
   }
 
   // 上一首
   const prev = () => {
-    // 触发 prev 事件
+    player.value?.prev?.()
   }
 
   // 加载音频

@@ -1,0 +1,854 @@
+/**
+ * 现代播放器样式 - 玻璃拟态设计
+ * 包含流畅动画、渐变色彩、响应式布局
+ */
+
+/* ==================== CSS 变量 ==================== */
+:root {
+  /* 主题色系 */
+  --mp-primary: #6366f1;
+  --mp-primary-light: #818cf8;
+  --mp-primary-dark: #4f46e5;
+  --mp-secondary: #ec4899;
+  --mp-secondary-light: #f472b6;
+  --mp-accent: #8b5cf6;
+  
+  /* 渐变 */
+  --mp-gradient-primary: linear-gradient(135deg, var(--mp-primary) 0%, var(--mp-secondary) 100%);
+  --mp-gradient-accent: linear-gradient(135deg, var(--mp-accent) 0%, var(--mp-primary) 100%);
+  --mp-gradient-warm: linear-gradient(135deg, #f97316 0%, #ec4899 100%);
+  --mp-gradient-cool: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
+  
+  /* 玻璃效果 */
+  --mp-glass-bg: rgba(255, 255, 255, 0.1);
+  --mp-glass-bg-hover: rgba(255, 255, 255, 0.15);
+  --mp-glass-bg-active: rgba(255, 255, 255, 0.2);
+  --mp-glass-border: rgba(255, 255, 255, 0.18);
+  --mp-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --mp-glass-blur: 20px;
+  
+  /* 文字颜色 */
+  --mp-text-primary: rgba(255, 255, 255, 0.95);
+  --mp-text-secondary: rgba(255, 255, 255, 0.7);
+  --mp-text-muted: rgba(255, 255, 255, 0.5);
+  
+  /* 尺寸 */
+  --mp-radius-sm: 8px;
+  --mp-radius-md: 12px;
+  --mp-radius-lg: 16px;
+  --mp-radius-xl: 24px;
+  --mp-radius-full: 9999px;
+  
+  /* 动画 */
+  --mp-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mp-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mp-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mp-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  /* 间距 */
+  --mp-space-xs: 4px;
+  --mp-space-sm: 8px;
+  --mp-space-md: 16px;
+  --mp-space-lg: 24px;
+  --mp-space-xl: 32px;
+}
+
+/* 亮色主题 */
+.modern-player.light {
+  --mp-glass-bg: rgba(255, 255, 255, 0.7);
+  --mp-glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --mp-glass-bg-active: rgba(255, 255, 255, 0.95);
+  --mp-glass-border: rgba(0, 0, 0, 0.1);
+  --mp-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --mp-text-primary: rgba(0, 0, 0, 0.9);
+  --mp-text-secondary: rgba(0, 0, 0, 0.6);
+  --mp-text-muted: rgba(0, 0, 0, 0.4);
+}
+
+/* ==================== 播放器容器 ==================== */
+.modern-player {
+  position: relative;
+  width: 100%;
+  border-radius: var(--mp-radius-lg);
+  overflow: hidden;
+  background: linear-gradient(180deg, #0f0f23 0%, #1a1a2e 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==================== 音频播放器 ==================== */
+.modern-audio-player {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mp-space-md);
+  padding: var(--mp-space-lg);
+  background: var(--mp-glass-bg);
+  backdrop-filter: blur(var(--mp-glass-blur));
+  border: 1px solid var(--mp-glass-border);
+}
+
+/* 专辑封面区域 */
+.modern-player-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 300px;
+  margin: 0 auto;
+  border-radius: var(--mp-radius-lg);
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  transition: transform var(--mp-spring);
+}
+
+.modern-player-cover:hover {
+  transform: scale(1.02);
+}
+
+.modern-player-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 封面播放动画 */
+.modern-player-cover.playing {
+  animation: vinyl-rotate 8s linear infinite;
+}
+
+@keyframes vinyl-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 音轨信息 */
+.modern-player-info {
+  text-align: center;
+  padding: var(--mp-space-md) 0;
+}
+
+.modern-player-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--mp-text-primary);
+  margin-bottom: var(--mp-space-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modern-player-artist {
+  font-size: 0.875rem;
+  color: var(--mp-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== 进度条 ==================== */
+.modern-progress-container {
+  position: relative;
+  width: 100%;
+  padding: var(--mp-space-sm) 0;
+  cursor: pointer;
+}
+
+.modern-progress-track {
+  position: relative;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--mp-radius-full);
+  overflow: visible;
+  transition: height var(--mp-transition-fast);
+}
+
+.modern-progress-container:hover .modern-progress-track {
+  height: 6px;
+}
+
+.modern-progress-buffer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: var(--mp-radius-full);
+  transition: width var(--mp-transition-fast);
+}
+
+.modern-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--mp-gradient-primary);
+  border-radius: var(--mp-radius-full);
+  transition: width 50ms linear;
+}
+
+/* 进度条滑块 */
+.modern-progress-thumb {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform var(--mp-transition-fast);
+  pointer-events: none;
+}
+
+.modern-progress-container:hover .modern-progress-thumb,
+.modern-progress-container.dragging .modern-progress-thumb {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* 进度条预览 */
+.modern-progress-preview {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  transform: translateX(-50%);
+  margin-bottom: 12px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--mp-radius-sm);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--mp-transition-fast);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.modern-progress-container:hover .modern-progress-preview {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 时间显示 */
+.modern-time-display {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--mp-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--mp-space-xs);
+}
+
+/* ==================== 控制按钮 ==================== */
+.modern-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mp-space-md);
+  padding: var(--mp-space-md) 0;
+}
+
+.modern-control-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: var(--mp-glass-bg);
+  color: var(--mp-text-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all var(--mp-transition-fast);
+  backdrop-filter: blur(10px);
+}
+
+.modern-control-btn:hover {
+  background: var(--mp-glass-bg-hover);
+  transform: scale(1.1);
+}
+
+.modern-control-btn:active {
+  transform: scale(0.95);
+}
+
+.modern-control-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 主播放按钮 */
+.modern-control-btn.primary {
+  width: 64px;
+  height: 64px;
+  background: var(--mp-gradient-primary);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+}
+
+.modern-control-btn.primary:hover {
+  background: var(--mp-gradient-primary);
+  box-shadow: 0 6px 30px rgba(99, 102, 241, 0.5);
+  transform: scale(1.05);
+}
+
+.modern-control-btn.primary svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* 按钮激活状态 */
+.modern-control-btn.active {
+  background: var(--mp-primary);
+  color: #fff;
+}
+
+/* ==================== 音量控制 ==================== */
+.modern-volume-control {
+  display: flex;
+  align-items: center;
+  gap: var(--mp-space-sm);
+}
+
+.modern-volume-slider {
+  width: 80px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--mp-radius-full);
+  cursor: pointer;
+  position: relative;
+}
+
+.modern-volume-fill {
+  height: 100%;
+  background: var(--mp-primary);
+  border-radius: var(--mp-radius-full);
+  transition: width var(--mp-transition-fast);
+}
+
+.modern-volume-slider:hover {
+  height: 6px;
+}
+
+/* ==================== 波形可视化 ==================== */
+.modern-waveform {
+  position: relative;
+  width: 100%;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--mp-radius-md);
+  overflow: hidden;
+}
+
+.modern-waveform canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* 频谱动画 */
+.modern-spectrum {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  height: 40px;
+  padding: 0 var(--mp-space-sm);
+}
+
+.modern-spectrum-bar {
+  width: 3px;
+  background: var(--mp-gradient-primary);
+  border-radius: 2px 2px 0 0;
+  transition: height 50ms ease;
+}
+
+/* ==================== 歌词显示 ==================== */
+.modern-lyrics {
+  position: relative;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: var(--mp-space-md);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--mp-radius-md);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 15%,
+    black 85%,
+    transparent 100%
+  );
+}
+
+.modern-lyrics-line {
+  padding: var(--mp-space-sm) 0;
+  text-align: center;
+  color: var(--mp-text-muted);
+  font-size: 0.875rem;
+  transition: all var(--mp-transition-normal);
+  cursor: pointer;
+}
+
+.modern-lyrics-line:hover {
+  color: var(--mp-text-secondary);
+}
+
+.modern-lyrics-line.active {
+  color: var(--mp-text-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  transform: scale(1.05);
+}
+
+/* 歌词滚动条 */
+.modern-lyrics::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modern-lyrics::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+/* ==================== 播放列表 ==================== */
+.modern-playlist {
+  max-height: 300px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--mp-radius-md);
+}
+
+.modern-playlist-item {
+  display: flex;
+  align-items: center;
+  gap: var(--mp-space-md);
+  padding: var(--mp-space-md);
+  cursor: pointer;
+  transition: background var(--mp-transition-fast);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modern-playlist-item:last-child {
+  border-bottom: none;
+}
+
+.modern-playlist-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.modern-playlist-item.active {
+  background: rgba(99, 102, 241, 0.1);
+  border-left: 3px solid var(--mp-primary);
+}
+
+.modern-playlist-item-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--mp-radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.modern-playlist-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.modern-playlist-item-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mp-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modern-playlist-item-artist {
+  font-size: 0.75rem;
+  color: var(--mp-text-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modern-playlist-item-duration {
+  font-size: 0.75rem;
+  color: var(--mp-text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* 正在播放动画 */
+.modern-playlist-item.active .modern-playing-indicator {
+  display: flex;
+}
+
+.modern-playing-indicator {
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+  margin-right: var(--mp-space-sm);
+}
+
+.modern-playing-indicator span {
+  width: 3px;
+  height: 100%;
+  background: var(--mp-primary);
+  border-radius: 1px;
+  animation: equalizer 0.8s ease-in-out infinite;
+}
+
+.modern-playing-indicator span:nth-child(1) { animation-delay: 0s; }
+.modern-playing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.modern-playing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes equalizer {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+
+/* ==================== 均衡器 ==================== */
+.modern-equalizer {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: var(--mp-space-sm);
+  padding: var(--mp-space-md);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--mp-radius-md);
+}
+
+.modern-equalizer-band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mp-space-xs);
+}
+
+.modern-equalizer-slider {
+  width: 4px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--mp-radius-full);
+  position: relative;
+  cursor: pointer;
+}
+
+.modern-equalizer-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: var(--mp-gradient-primary);
+  border-radius: var(--mp-radius-full);
+  transition: height var(--mp-transition-fast);
+}
+
+.modern-equalizer-label {
+  font-size: 0.625rem;
+  color: var(--mp-text-muted);
+}
+
+/* ==================== 菜单/弹窗 ==================== */
+.modern-menu {
+  position: absolute;
+  background: rgba(20, 20, 35, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--mp-glass-border);
+  border-radius: var(--mp-radius-md);
+  box-shadow: var(--mp-glass-shadow);
+  padding: var(--mp-space-sm) 0;
+  min-width: 140px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all var(--mp-transition-fast);
+  z-index: 100;
+}
+
+.modern-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.modern-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--mp-space-sm) var(--mp-space-md);
+  font-size: 0.875rem;
+  color: var(--mp-text-primary);
+  cursor: pointer;
+  transition: background var(--mp-transition-fast);
+}
+
+.modern-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modern-menu-item.active {
+  color: var(--mp-primary);
+}
+
+.modern-menu-item svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+}
+
+.modern-menu-item.active svg {
+  opacity: 1;
+}
+
+/* ==================== 加载状态 ==================== */
+.modern-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--mp-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ==================== 迷你播放器 ==================== */
+.modern-mini-player {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  background: rgba(20, 20, 35, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--mp-glass-border);
+  border-radius: var(--mp-radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  padding: var(--mp-space-md);
+  z-index: 9999;
+  animation: slideUp var(--mp-transition-slow) forwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modern-mini-player-content {
+  display: flex;
+  align-items: center;
+  gap: var(--mp-space-md);
+}
+
+.modern-mini-player-cover {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--mp-radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.modern-mini-player-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.modern-mini-player-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mp-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modern-mini-player-artist {
+  font-size: 0.75rem;
+  color: var(--mp-text-muted);
+  margin-top: 2px;
+}
+
+.modern-mini-player-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--mp-space-xs);
+}
+
+.modern-mini-player-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 var(--mp-radius-lg) var(--mp-radius-lg);
+  overflow: hidden;
+}
+
+.modern-mini-player-progress-fill {
+  height: 100%;
+  background: var(--mp-gradient-primary);
+  transition: width 100ms linear;
+}
+
+/* ==================== 快捷键提示 ==================== */
+.modern-shortcut-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: var(--mp-space-md) var(--mp-space-lg);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 500;
+  border-radius: var(--mp-radius-md);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1000;
+  animation: hintFade 1.5s ease forwards;
+}
+
+@keyframes hintFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+}
+
+/* ==================== 响应式布局 ==================== */
+@media (max-width: 640px) {
+  .modern-audio-player {
+    padding: var(--mp-space-md);
+  }
+
+  .modern-player-cover {
+    max-width: 200px;
+  }
+
+  .modern-controls {
+    gap: var(--mp-space-sm);
+  }
+
+  .modern-control-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .modern-control-btn.primary {
+    width: 56px;
+    height: 56px;
+  }
+
+  .modern-volume-slider {
+    width: 60px;
+  }
+
+  .modern-mini-player {
+    width: 280px;
+    bottom: 10px;
+    right: 10px;
+  }
+}
+
+/* ==================== 动画辅助类 ==================== */
+.mp-animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.mp-animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(-5%); }
+  50% { transform: translateY(0); }
+}
+
+.mp-animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* 淡入动画 */
+.mp-fade-in {
+  animation: fadeIn var(--mp-transition-normal) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 滑入动画 */
+.mp-slide-up {
+  animation: slideUp var(--mp-transition-normal) forwards;
+}
+
+/* 缩放动画 */
+.mp-scale-in {
+  animation: scaleIn var(--mp-spring) forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==================== 无障碍支持 ==================== */
+.modern-player *:focus-visible {
+  outline: 2px solid var(--mp-primary);
+  outline-offset: 2px;
+}
+
+.modern-player button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .modern-player *,
+  .modern-player *::before,
+  .modern-player *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
