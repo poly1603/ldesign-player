@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div ref="containerRef" class="ld-video-player-wrapper"></div>
 </template>
 
@@ -40,6 +40,7 @@ onMounted(() => {
       autoplay: props.autoplay,
       borderRadius: props.borderRadius,
     })
+    
     const video = player.getVideo()
     video.addEventListener('play', () => emit('play'))
     video.addEventListener('pause', () => emit('pause'))
