@@ -1,0 +1,473 @@
+/**
+ * 响应式布局优化样式
+ * 优化不同屏幕尺寸和触摸设备的体验
+ */
+
+/* ==================== CSS 变量 ==================== */
+:root {
+  /* 触摸目标最小尺寸（WCAG 2.5.5 建议 44px） */
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
+  
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  
+  /* 字体大小 */
+  --font-size-xs: 10px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+}
+
+/* ==================== 触摸设备优化 ==================== */
+
+/* 检测触摸设备 */
+@media (pointer: coarse) {
+  /* 增大所有可点击元素的触摸目标 */
+  .custom-video-player-container .play-pause-btn,
+  .custom-video-player-container .center-play-btn {
+    min-width: var(--touch-target-comfortable);
+    min-height: var(--touch-target-comfortable);
+  }
+
+  .custom-video-player-container .volume-btn,
+  .custom-video-player-container .fullscreen-btn,
+  .custom-video-player-container .page-fullscreen-btn,
+  .custom-video-player-container .speed-btn,
+  .custom-video-player-container .pip-btn,
+  .custom-video-player-container .rotate-btn,
+  .custom-video-player-container .screenshot-btn,
+  .custom-video-player-container .download-btn,
+  .custom-video-player-container .danmaku-toggle-btn {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+  }
+
+  /* 增大进度条高度，更容易触摸 */
+  .custom-video-player-container .progress-container {
+    height: 8px;
+    min-height: 24px;
+    padding: 8px 0;
+    box-sizing: content-box;
+  }
+
+  /* 禁用 hover 效果（触摸设备没有 hover 状态） */
+  .custom-video-player-container .play-pause-btn:hover,
+  .custom-video-player-container .volume-btn:hover,
+  .custom-video-player-container .fullscreen-btn:hover {
+    transform: none;
+  }
+
+  /* 音频播放器触摸优化 */
+  .cap .cap__btn {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+
+  .cap .cap__btn--main {
+    width: var(--touch-target-comfortable);
+    height: var(--touch-target-comfortable);
+    min-width: var(--touch-target-comfortable);
+    min-height: var(--touch-target-comfortable);
+  }
+
+  .cap .cap__progress-bar {
+    height: 8px;
+    min-height: 24px;
+    padding: 8px 0;
+    box-sizing: content-box;
+  }
+}
+
+/* ==================== 小屏幕设备（手机竖屏） ==================== */
+@media screen and (max-width: 480px) {
+  /* 视频播放器 */
+  .custom-video-player-container .custom-controls {
+    padding: var(--spacing-md) var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+
+  .custom-video-player-container .controls-row {
+    gap: var(--spacing-sm);
+  }
+
+  .custom-video-player-container .controls-left {
+    gap: var(--spacing-xs);
+  }
+
+  .custom-video-player-container .controls-right {
+    gap: var(--spacing-xs);
+  }
+
+  /* 减小按钮尺寸但保持触摸目标 */
+  .custom-video-player-container .play-pause-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .custom-video-player-container .play-pause-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .custom-video-player-container .volume-btn,
+  .custom-video-player-container .fullscreen-btn,
+  .custom-video-player-container .speed-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .custom-video-player-container .volume-btn svg,
+  .custom-video-player-container .fullscreen-btn svg,
+  .custom-video-player-container .speed-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* 隐藏次要按钮 */
+  .custom-video-player-container .page-fullscreen-btn,
+  .custom-video-player-container .pip-btn,
+  .custom-video-player-container .rotate-btn,
+  .custom-video-player-container .screenshot-btn,
+  .custom-video-player-container .download-btn {
+    display: none;
+  }
+
+  /* 时间显示紧凑化 */
+  .custom-video-player-container .time-display {
+    font-size: var(--font-size-sm);
+    width: auto;
+    min-width: auto;
+    max-width: none;
+  }
+
+  /* 中心播放按钮 */
+  .custom-video-player-container .center-play-btn {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    min-height: 60px;
+  }
+
+  .custom-video-player-container .center-play-btn svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* 加载指示器 */
+  .custom-video-player-container .loading-spinner {
+    width: 48px;
+    height: 48px;
+    border-width: 3px;
+  }
+
+  /* 音频播放器 */
+  .cap {
+    padding: var(--spacing-md);
+    border-radius: 12px;
+  }
+
+  .cap--compact .cap__header {
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .cap__cover {
+    width: 48px;
+    height: 48px;
+  }
+
+  .cap__title {
+    font-size: 0.9rem;
+  }
+
+  .cap__artist {
+    font-size: 0.75rem;
+  }
+
+  .cap__main-row {
+    gap: var(--spacing-sm);
+  }
+
+  .cap__btn--main {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .cap__btn--small {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 4px;
+  }
+
+  .cap__time-current,
+  .cap__time-duration {
+    font-size: var(--font-size-xs);
+    min-width: 28px;
+  }
+
+  /* 歌词区域 */
+  .cap__lyrics {
+    padding: var(--spacing-md);
+    min-height: 60px;
+  }
+
+  .cap__lyrics-line {
+    font-size: 0.8rem;
+  }
+
+  .cap__lyrics-line--current {
+    font-size: 0.95rem;
+  }
+}
+
+/* ==================== 中等屏幕（手机横屏、平板竖屏） ==================== */
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .custom-video-player-container .custom-controls {
+    padding: var(--spacing-lg) var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+
+  .custom-video-player-container .controls-row {
+    gap: var(--spacing-md);
+  }
+
+  /* 隐藏部分次要按钮 */
+  .custom-video-player-container .rotate-btn,
+  .custom-video-player-container .screenshot-btn,
+  .custom-video-player-container .download-btn {
+    display: none;
+  }
+
+  /* 音频播放器 */
+  .cap {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* ==================== 大屏幕（平板横屏、桌面） ==================== */
+@media screen and (min-width: 769px) {
+  .custom-video-player-container .custom-controls {
+    padding: var(--spacing-xl);
+    gap: 15px;
+  }
+
+  /* 进度条预览更大 */
+  .custom-video-player-container .progress-preview {
+    width: 200px;
+  }
+
+  .custom-video-player-container .progress-preview-image {
+    min-height: 110px;
+    max-height: 140px;
+  }
+}
+
+/* ==================== 超宽屏幕 ==================== */
+@media screen and (min-width: 1440px) {
+  .custom-video-player-container .custom-controls {
+    padding: 24px 32px;
+  }
+
+  .custom-video-player-container .controls-row {
+    gap: 20px;
+  }
+
+  .custom-video-player-container .progress-preview {
+    width: 240px;
+  }
+}
+
+/* ==================== 横屏模式特殊处理 ==================== */
+@media screen and (orientation: landscape) and (max-height: 480px) {
+  /* 手机横屏时控制栏更紧凑 */
+  .custom-video-player-container .custom-controls {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  .custom-video-player-container .center-play-btn {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    min-height: 56px;
+  }
+
+  .custom-video-player-container .center-play-btn svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* 音频播放器横屏优化 */
+  .cap {
+    padding: var(--spacing-md);
+  }
+
+  .cap__lyrics {
+    min-height: 50px;
+    padding: var(--spacing-sm);
+  }
+}
+
+/* ==================== 高度受限情况 ==================== */
+@media screen and (max-height: 400px) {
+  .custom-video-player-container .custom-controls {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    gap: var(--spacing-xs);
+  }
+
+  .custom-video-player-container .progress-container {
+    height: 4px;
+  }
+
+  .custom-video-player-container .center-play-btn {
+    display: none;
+  }
+}
+
+/* ==================== 全屏模式优化 ==================== */
+.custom-video-player-container:fullscreen .custom-controls,
+.custom-video-player-container:-webkit-full-screen .custom-controls {
+  padding: 24px 32px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.custom-video-player-container:fullscreen .center-play-btn,
+.custom-video-player-container:-webkit-full-screen .center-play-btn {
+  width: 100px;
+  height: 100px;
+  min-width: 100px;
+  min-height: 100px;
+}
+
+.custom-video-player-container:fullscreen .center-play-btn svg,
+.custom-video-player-container:-webkit-full-screen .center-play-btn svg {
+  width: 48px;
+  height: 48px;
+}
+
+/* ==================== 安全区域适配（刘海屏、药丸屏） ==================== */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .custom-video-player-container .custom-controls {
+    padding-left: max(var(--spacing-md), env(safe-area-inset-left));
+    padding-right: max(var(--spacing-md), env(safe-area-inset-right));
+    padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom));
+  }
+
+  .cap {
+    padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
+    padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
+    padding-bottom: max(var(--spacing-lg), env(safe-area-inset-bottom));
+  }
+}
+
+/* ==================== 深色模式适配 ==================== */
+@media (prefers-color-scheme: dark) {
+  .cap {
+    --cap-bg: #1e1e2e;
+    --cap-text: #cdd6f4;
+    --cap-text-secondary: #a6adc8;
+    --cap-border: #313244;
+  }
+
+  .custom-video-player-container .speed-menu,
+  .custom-video-player-container .volume-slider-popup {
+    background: rgba(30, 30, 46, 0.95);
+  }
+}
+
+/* ==================== 减少动画（辅助功能） ==================== */
+@media (prefers-reduced-motion: reduce) {
+  .custom-video-player-container *,
+  .cap * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .cap__cover--playing {
+    animation: none !important;
+  }
+
+  .cap--cd .cap__cover--playing {
+    animation: none !important;
+  }
+}
+
+/* ==================== 高对比度模式 ==================== */
+@media (prefers-contrast: high) {
+  .custom-video-player-container .progress-bar {
+    background: #fff;
+  }
+
+  .custom-video-player-container .buffer-bar {
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  .custom-video-player-container .time-display {
+    text-shadow: none;
+    font-weight: 600;
+  }
+
+  .cap__progress-fill {
+    background: var(--cap-primary);
+    opacity: 1;
+  }
+}
+
+/* ==================== 强制颜色模式（Windows高对比度） ==================== */
+@media (forced-colors: active) {
+  .custom-video-player-container .play-pause-btn,
+  .custom-video-player-container .volume-btn,
+  .custom-video-player-container .fullscreen-btn,
+  .custom-video-player-container .center-play-btn {
+    border: 2px solid ButtonText;
+  }
+
+  .cap__btn {
+    border: 2px solid ButtonText;
+  }
+}
+
+/* ==================== 焦点可见性（键盘导航） ==================== */
+.custom-video-player-container button:focus-visible,
+.cap button:focus-visible {
+  outline: 3px solid var(--theme-color, #667eea);
+  outline-offset: 2px;
+}
+
+/* ==================== 容器查询（现代浏览器） ==================== */
+@container (max-width: 400px) {
+  .custom-video-player-container .time-display {
+    display: none;
+  }
+
+  .custom-video-player-container .controls-right > *:not(.fullscreen-btn):not(.play-pause-btn) {
+    display: none;
+  }
+}
+
+@container (max-width: 300px) {
+  .custom-video-player-container .custom-controls {
+    flex-direction: row;
+    padding: var(--spacing-sm);
+  }
+
+  .custom-video-player-container .progress-container {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    margin-bottom: var(--spacing-xs);
+  }
+}

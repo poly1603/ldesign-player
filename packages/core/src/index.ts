@@ -19,9 +19,23 @@ export * from './audio/LyricsParser'
 export * from './audio/PlaylistManager'
 export * from './audio/WaveformRenderer'
 export * from './audio/CustomAudioPlayer'
+export * from './audio/AudioEnhancer'
 
 // Video Features
 export * from './video/SubtitleParser'
+export {
+  SubtitleManager,
+  SUBTITLE_STYLE_PRESETS,
+  createSubtitleSettingsPanel,
+} from './video/SubtitleManager'
+export type {
+  SubtitleStyle,
+  SubtitleTrack,
+  SubtitleManagerOptions,
+  SubtitleSearchResult,
+  SubtitlePosition,
+  SubtitleCue as SubtitleManagerCue,
+} from './video/SubtitleManager'
 export * from './video/CustomVideoPlayer'
 
 // Types
@@ -50,10 +64,30 @@ export * from './features/ABLoop';
 export * from './features/OfflineCache';
 export * from './features/PlaybackResume';
 export * from './features/PlaybackRateMemory';
-export * from './features/QualitySwitcher';
+export { QualitySwitcher } from './features/QualitySwitcher';
+export type { QualityLevel as QualitySwitcherLevel, QualityChangeListener } from './features/QualitySwitcher';
 export * from './features/GestureControl';
 export * from './features/MiniPlayer';
 export * from './features/VideoRotate';
 export * from './features/Screenshot';
 export * from './features/Danmaku';
 export * from './features/VideoDownload';
+export * from './features/MediaSession';
+export * from './features/SleepTimer';
+export * from './features/VideoFilter';
+export * from './features/DesktopInteraction';
+export * from './features/SmartPreload';
+export { PlaybackAnalytics } from './features/PlaybackAnalytics';
+export type {
+  PlaybackAnalyticsOptions,
+  WatchSession,
+  HeatmapData,
+  AnalyticsStats,
+  WatchSegment,
+  PlaybackEvent,
+  DeviceInfo as AnalyticsDeviceInfo,
+} from './features/PlaybackAnalytics';
+export * from './features/AdaptiveBitrate';
+export * from './features/ShortcutPanel'
+export * from './features/PictureInPicture'
+export * from './utils/device';

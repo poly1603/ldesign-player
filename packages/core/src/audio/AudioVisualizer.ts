@@ -9,7 +9,13 @@ export type VisualizerType =
   | 'circular'
   | 'particles'
   | 'spectrum'
-  | 'oscilloscope';
+  | 'oscilloscope'
+  | 'circularDouble'   // 双环形频谱
+  | 'circularWave'     // 环形波浪
+  | 'particleFlow'     // 粒子流
+  | 'starfield'        // 星空粒子
+  | 'pulse'            // 脉冲动画
+  | 'galaxy';          // 银河旋转
 
 export interface VisualizerOptions {
   /** 可视化类型 */
@@ -22,6 +28,8 @@ export interface VisualizerOptions {
   primaryColor?: string;
   /** 次要颜色 */
   secondaryColor?: string;
+  /** 第三颜色（用于高级效果） */
+  tertiaryColor?: string;
   /** 背景颜色 */
   backgroundColor?: string;
   /** 是否启用渐变 */
@@ -40,6 +48,16 @@ export interface VisualizerOptions {
   minDecibels?: number;
   /** 最大分贝 */
   maxDecibels?: number;
+  /** 旋转速度 */
+  rotationSpeed?: number;
+  /** 粒子数量上限 */
+  maxParticles?: number;
+  /** 发光效果强度 */
+  glowIntensity?: number;
+  /** 是否启用轨迹 */
+  trails?: boolean;
+  /** 轨迹衰减系数 */
+  trailsFade?: number;
 }
 
 const DEFAULT_OPTIONS: Required<VisualizerOptions> = {
@@ -48,6 +66,7 @@ const DEFAULT_OPTIONS: Required<VisualizerOptions> = {
   smoothingTimeConstant: 0.8,
   primaryColor: '#6366f1',
   secondaryColor: '#ec4899',
+  tertiaryColor: '#22d3ee',
   backgroundColor: 'transparent',
   gradient: true,
   barCount: 64,
@@ -57,6 +76,11 @@ const DEFAULT_OPTIONS: Required<VisualizerOptions> = {
   sensitivity: 1,
   minDecibels: -90,
   maxDecibels: -10,
+  rotationSpeed: 0.5,
+  maxParticles: 300,
+  glowIntensity: 15,
+  trails: false,
+  trailsFade: 0.1,
 };
 
 /**
@@ -75,6 +99,15 @@ export class AudioVisualizer {
   private gradientCache: CanvasGradient | null = null;
   private lastWidth = 0;
   private lastHeight = 0;
+  
+  // 高级效果状态
+  private rotation = 0;
+  private frameCount = 0;
+  private starParticles: StarParticle[] = [];
+  private flowParticles: FlowParticle[] = [];
+  private galaxyStars: GalaxyStar[] = [];
+  private pulseRings: PulseRing[] = [];
+  private previousData: Uint8Array | null = null;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -184,6 +217,13 @@ export class AudioVisualizer {
     // 清除画布
     this.clear();
 
+    // 轨迹效果：不完全清除
+    if (this.options.trails) {
+      const { width, height } = this.canvas.getBoundingClientRect();
+      this.ctx.fillStyle = `rgba(0, 0, 0, ${this.options.trailsFade})`;
+      this.ctx.fillRect(0, 0, width, height);
+    }
+
     // 根据类型绘制
     switch (this.options.type) {
       case 'bars':
@@ -204,8 +244,27 @@ export class AudioVisualizer {
       case 'oscilloscope':
         this.drawOscilloscope();
         break;
+      case 'circularDouble':
+        this.drawCircularDouble();
+        break;
+      case 'circularWave':
+        this.drawCircularWave();
+        break;
+      case 'particleFlow':
+        this.drawParticleFlow();
+        break;
+      case 'starfield':
+        this.drawStarfield();
+        break;
+      case 'pulse':
+        this.drawPulse();
+        break;
+      case 'galaxy':
+        this.drawGalaxy();
+        break;
     }
 
+    this.frameCount++;
     this.animationId = requestAnimationFrame(this.animate);
   };
 
@@ -537,6 +596,581 @@ export class AudioVisualizer {
   }
 
   /**
+   * 双环形频谱
+   */
+  private drawCircularDouble(): void {
+    const { width, height } = this.canvas.getBoundingClientRect();
+    const { barCount, sensitivity, gradient, rotationSpeed, glowIntensity } = this.options;
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const baseRadius = Math.min(width, height) * 0.25;
+    const step = Math.floor(this.dataArray.length / barCount);
+
+    // 更新旋转
+    this.rotation += rotationSpeed * 0.01;
+
+    this.ctx.lineCap = 'round';
+    this.ctx.lineWidth = 3;
+
+    // 外环（向外）
+    for (let i = 0; i < barCount; i++) {
+      const value = this.dataArray[i * step] * sensitivity;
+      const percent = value / 255;
+      const barLength = percent * baseRadius * 0.6;
+
+      const angle = (i / barCount) * Math.PI * 2 + this.rotation;
+      const innerRadius = baseRadius * 1.2;
+
+      const x1 = centerX + Math.cos(angle) * innerRadius;
+      const y1 = centerY + Math.sin(angle) * innerRadius;
+      const x2 = centerX + Math.cos(angle) * (innerRadius + barLength);
+      const y2 = centerY + Math.sin(angle) * (innerRadius + barLength);
+
+      if (gradient) {
+        const hue = (i / barCount) * 120 + 180; // 蓝到绿
+        this.ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${0.5 + percent * 0.5})`;
+        this.ctx.shadowColor = `hsl(${hue}, 80%, 60%)`;
+        this.ctx.shadowBlur = glowIntensity * percent;
+      } else {
+        this.ctx.strokeStyle = this.options.primaryColor;
+      }
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(x1, y1);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+    }
+
+    // 内环（向内）
+    for (let i = 0; i < barCount; i++) {
+      const value = this.dataArray[Math.floor((barCount - 1 - i) * step)] * sensitivity;
+      const percent = value / 255;
+      const barLength = percent * baseRadius * 0.4;
+
+      const angle = (i / barCount) * Math.PI * 2 - this.rotation;
+      const outerRadius = baseRadius * 0.8;
+
+      const x1 = centerX + Math.cos(angle) * outerRadius;
+      const y1 = centerY + Math.sin(angle) * outerRadius;
+      const x2 = centerX + Math.cos(angle) * (outerRadius - barLength);
+      const y2 = centerY + Math.sin(angle) * (outerRadius - barLength);
+
+      if (gradient) {
+        const hue = (i / barCount) * 120 + 300; // 紫到粉
+        this.ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${0.5 + percent * 0.5})`;
+        this.ctx.shadowColor = `hsl(${hue}, 80%, 60%)`;
+        this.ctx.shadowBlur = glowIntensity * percent;
+      } else {
+        this.ctx.strokeStyle = this.options.secondaryColor;
+      }
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(x1, y1);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+    }
+
+    this.ctx.shadowBlur = 0;
+
+    // 中心脉冲圆
+    const avgValue = this.getAverageFrequency() / 255;
+    const pulseRadius = baseRadius * 0.3 * (0.8 + avgValue * 0.4);
+
+    const centerGrad = this.ctx.createRadialGradient(
+      centerX, centerY, 0,
+      centerX, centerY, pulseRadius
+    );
+    centerGrad.addColorStop(0, this.hexToRgba(this.options.primaryColor, 0.8));
+    centerGrad.addColorStop(0.5, this.hexToRgba(this.options.secondaryColor, 0.4));
+    centerGrad.addColorStop(1, 'transparent');
+
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2);
+    this.ctx.fillStyle = centerGrad;
+    this.ctx.fill();
+  }
+
+  /**
+   * 环形波浪
+   */
+  private drawCircularWave(): void {
+    const { width, height } = this.canvas.getBoundingClientRect();
+    const { sensitivity, gradient, rotationSpeed, glowIntensity } = this.options;
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const baseRadius = Math.min(width, height) * 0.3;
+    const points = 180;
+
+    this.rotation += rotationSpeed * 0.005;
+
+    // 绘制多层波浪
+    for (let layer = 0; layer < 3; layer++) {
+      const layerOffset = layer * 0.15;
+      const layerRadius = baseRadius * (1 + layerOffset);
+      const layerAlpha = 1 - layer * 0.3;
+
+      this.ctx.beginPath();
+
+      for (let i = 0; i <= points; i++) {
+        const angle = (i / points) * Math.PI * 2 + this.rotation + layer * 0.5;
+        const dataIndex = Math.floor((i / points) * this.dataArray.length);
+        const value = (this.dataArray[dataIndex] || 0) * sensitivity;
+        const displacement = (value / 255) * baseRadius * 0.3;
+
+        const r = layerRadius + displacement;
+        const x = centerX + Math.cos(angle) * r;
+        const y = centerY + Math.sin(angle) * r;
+
+        if (i === 0) {
+          this.ctx.moveTo(x, y);
+        } else {
+          this.ctx.lineTo(x, y);
+        }
+      }
+
+      this.ctx.closePath();
+
+      // 填充
+      if (gradient) {
+        const hue = (this.frameCount + layer * 60) % 360;
+        this.ctx.fillStyle = `hsla(${hue}, 70%, 50%, ${layerAlpha * 0.2})`;
+        this.ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${layerAlpha})`;
+        this.ctx.shadowColor = `hsl(${hue}, 80%, 60%)`;
+        this.ctx.shadowBlur = glowIntensity;
+      } else {
+        this.ctx.fillStyle = this.hexToRgba(this.options.primaryColor, layerAlpha * 0.2);
+        this.ctx.strokeStyle = this.hexToRgba(this.options.primaryColor, layerAlpha);
+      }
+
+      this.ctx.lineWidth = 2;
+      this.ctx.fill();
+      this.ctx.stroke();
+    }
+
+    this.ctx.shadowBlur = 0;
+  }
+
+  /**
+   * 粒子流
+   */
+  private drawParticleFlow(): void {
+    const { width, height } = this.canvas.getBoundingClientRect();
+    const { sensitivity, gradient, maxParticles, glowIntensity } = this.options;
+
+    const avgFreq = this.getAverageFrequency() * sensitivity;
+    const bassFreq = this.getBassFrequency() * sensitivity;
+
+    // 根据音频能量生成新粒子
+    const spawnRate = Math.floor(avgFreq / 30);
+    for (let i = 0; i < spawnRate && this.flowParticles.length < maxParticles; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 2 + bassFreq / 100;
+
+      this.flowParticles.push({
+        x: width / 2,
+        y: height / 2,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 2 + Math.random() * 3,
+        life: 0,
+        maxLife: 80 + Math.random() * 40,
+        hue: Math.random() * 60 + 200,
+        trail: [],
+      });
+    }
+
+    // 更新和绘制粒子
+    for (let i = this.flowParticles.length - 1; i >= 0; i--) {
+      const p = this.flowParticles[i];
+
+      // 保存轨迹
+      p.trail.push({ x: p.x, y: p.y });
+      if (p.trail.length > 10) p.trail.shift();
+
+      // 更新位置（添加扰动）
+      const turbulence = avgFreq / 500;
+      p.vx += (Math.random() - 0.5) * turbulence;
+      p.vy += (Math.random() - 0.5) * turbulence;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life++;
+
+      const lifePercent = 1 - p.life / p.maxLife;
+
+      if (p.life >= p.maxLife || p.x < 0 || p.x > width || p.y < 0 || p.y > height) {
+        this.flowParticles.splice(i, 1);
+        continue;
+      }
+
+      // 绘制轨迹
+      if (p.trail.length > 1) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(p.trail[0].x, p.trail[0].y);
+        for (let j = 1; j < p.trail.length; j++) {
+          this.ctx.lineTo(p.trail[j].x, p.trail[j].y);
+        }
+        const trailAlpha = lifePercent * 0.3;
+        this.ctx.strokeStyle = gradient
+          ? `hsla(${p.hue}, 80%, 60%, ${trailAlpha})`
+          : this.hexToRgba(this.options.primaryColor, trailAlpha);
+        this.ctx.lineWidth = p.size * 0.5;
+        this.ctx.stroke();
+      }
+
+      // 绘制粒子
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, p.size * lifePercent, 0, Math.PI * 2);
+
+      if (gradient) {
+        this.ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, ${lifePercent})`;
+        this.ctx.shadowColor = `hsl(${p.hue}, 80%, 60%)`;
+        this.ctx.shadowBlur = glowIntensity * lifePercent;
+      } else {
+        this.ctx.fillStyle = this.hexToRgba(this.options.primaryColor, lifePercent);
+      }
+
+      this.ctx.fill();
+    }
+
+    this.ctx.shadowBlur = 0;
+  }
+
+  /**
+   * 星空粒子
+   */
+  private drawStarfield(): void {
+    const { width, height } = this.canvas.getBoundingClientRect();
+    const { sensitivity, gradient, maxParticles, glowIntensity } = this.options;
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const avgFreq = this.getAverageFrequency() * sensitivity;
+
+    // 初始化星星
+    while (this.starParticles.length < maxParticles * 0.5) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * 10;
+      this.starParticles.push({
+        x: centerX + Math.cos(angle) * distance,
+        y: centerY + Math.sin(angle) * distance,
+        z: Math.random() * 1000,
+        size: 0.5 + Math.random() * 1.5,
+        speed: 2 + Math.random() * 3,
+        hue: Math.random() * 60 + 200,
+      });
+    }
+
+    // 更新和绘制星星
+    for (let i = 0; i < this.starParticles.length; i++) {
+      const star = this.starParticles[i];
+
+      // 移动（音频影响速度）
+      const speedMultiplier = 1 + avgFreq / 100;
+      star.z -= star.speed * speedMultiplier;
+
+      // 重置远处的星星
+      if (star.z <= 0) {
+        star.z = 1000;
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 10;
+        star.x = centerX + Math.cos(angle) * distance;
+        star.y = centerY + Math.sin(angle) * distance;
+      }
+
+      // 投影
+      const perspective = 300 / star.z;
+      const screenX = centerX + (star.x - centerX) * perspective;
+      const screenY = centerY + (star.y - centerY) * perspective;
+      const screenSize = star.size * perspective;
+
+      // 绘制星星
+      const alpha = Math.min(1, (1000 - star.z) / 500);
+      this.ctx.beginPath();
+      this.ctx.arc(screenX, screenY, Math.max(0.5, screenSize), 0, Math.PI * 2);
+
+      if (gradient) {
+        this.ctx.fillStyle = `hsla(${star.hue}, 80%, 80%, ${alpha})`;
+        this.ctx.shadowColor = `hsl(${star.hue}, 80%, 80%)`;
+        this.ctx.shadowBlur = glowIntensity * alpha * (avgFreq / 128);
+      } else {
+        this.ctx.fillStyle = this.hexToRgba(this.options.primaryColor, alpha);
+      }
+
+      this.ctx.fill();
+
+      // 高速时绘制拖尾
+      if (speedMultiplier > 1.5 && star.z < 800) {
+        const tailLength = (1000 - star.z) / 50 * speedMultiplier;
+        const tailX = centerX + (star.x - centerX) * (300 / (star.z + tailLength));
+        const tailY = centerY + (star.y - centerY) * (300 / (star.z + tailLength));
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(screenX, screenY);
+        this.ctx.lineTo(tailX, tailY);
+        this.ctx.strokeStyle = gradient
+          ? `hsla(${star.hue}, 80%, 80%, ${alpha * 0.5})`
+          : this.hexToRgba(this.options.primaryColor, alpha * 0.5);
+        this.ctx.lineWidth = screenSize * 0.5;
+        this.ctx.stroke();
+      }
+    }
+
+    this.ctx.shadowBlur = 0;
+  }
+
+  /**
+   * 脉冲动画
+   */
+  private drawPulse(): void {
+    const { width, height } = this.canvas.getBoundingClientRect();
+    const { sensitivity, gradient, glowIntensity } = this.options;
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const maxRadius = Math.min(width, height) * 0.45;
+
+    // 检测节拍
+    const bassFreq = this.getBassFrequency() * sensitivity;
+    if (bassFreq > 150 && (this.pulseRings.length === 0 || this.pulseRings[this.pulseRings.length - 1].radius > 30)) {
+      this.pulseRings.push({
+        radius: 20,
+        maxRadius: maxRadius,
+        alpha: 1,
+        lineWidth: 3 + (bassFreq / 255) * 5,
+        hue: Math.random() * 60 + 280,
+        speed: 3 + (bassFreq / 255) * 4,
+      });
+    }
+
+    // 绘制中心圆
+    const avgFreq = this.getAverageFrequency() * sensitivity;
+    const centerRadius = 20 + (avgFreq / 255) * 30;
+
+    const centerGrad = this.ctx.createRadialGradient(
+      centerX, centerY, 0,
+      centerX, centerY, centerRadius
+    );
+
+    if (gradient) {
+      const hue = (this.frameCount * 2) % 360;
+      centerGrad.addColorStop(0, `hsla(${hue}, 80%, 70%, 1)`);
+      centerGrad.addColorStop(0.5, `hsla(${hue + 30}, 80%, 60%, 0.5)`);
+      centerGrad.addColorStop(1, 'transparent');
+    } else {
+      centerGrad.addColorStop(0, this.options.primaryColor);
+      centerGrad.addColorStop(1, 'transparent');
+    }
+
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, centerRadius, 0, Math.PI * 2);
+    this.ctx.fillStyle = centerGrad;
+    this.ctx.fill();
+
+    // 更新和绘制脉冲环
+    for (let i = this.pulseRings.length - 1; i >= 0; i--) {
+      const ring = this.pulseRings[i];
+
+      ring.radius += ring.speed;
+      ring.alpha = 1 - ring.radius / ring.maxRadius;
+
+      if (ring.radius >= ring.maxRadius) {
+        this.pulseRings.splice(i, 1);
+        continue;
+      }
+
+      this.ctx.beginPath();
+      this.ctx.arc(centerX, centerY, ring.radius, 0, Math.PI * 2);
+
+      if (gradient) {
+        this.ctx.strokeStyle = `hsla(${ring.hue}, 80%, 60%, ${ring.alpha})`;
+        this.ctx.shadowColor = `hsl(${ring.hue}, 80%, 60%)`;
+        this.ctx.shadowBlur = glowIntensity * ring.alpha;
+      } else {
+        this.ctx.strokeStyle = this.hexToRgba(this.options.primaryColor, ring.alpha);
+      }
+
+      this.ctx.lineWidth = ring.lineWidth * ring.alpha;
+      this.ctx.stroke();
+    }
+
+    // 绘制频谱条作为装饰
+    const barCount = 32;
+    const step = Math.floor(this.dataArray.length / barCount);
+
+    for (let i = 0; i < barCount; i++) {
+      const value = this.dataArray[i * step] * sensitivity;
+      const percent = value / 255;
+      const barLength = percent * 40;
+
+      const angle = (i / barCount) * Math.PI * 2 - Math.PI / 2;
+      const innerRadius = centerRadius + 10;
+
+      const x1 = centerX + Math.cos(angle) * innerRadius;
+      const y1 = centerY + Math.sin(angle) * innerRadius;
+      const x2 = centerX + Math.cos(angle) * (innerRadius + barLength);
+      const y2 = centerY + Math.sin(angle) * (innerRadius + barLength);
+
+      if (gradient) {
+        const hue = (i / barCount) * 60 + 280;
+        this.ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${0.3 + percent * 0.7})`;
+      } else {
+        this.ctx.strokeStyle = this.hexToRgba(this.options.secondaryColor, 0.3 + percent * 0.7);
+      }
+
+      this.ctx.lineWidth = 2;
+      this.ctx.lineCap = 'round';
+      this.ctx.beginPath();
+      this.ctx.moveTo(x1, y1);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+    }
+
+    this.ctx.shadowBlur = 0;
+  }
+
+  /**
+   * 银河旋转
+   */
+  private drawGalaxy(): void {
+    const { width, height } = this.canvas.getBoundingClientRect();
+    const { sensitivity, gradient, maxParticles, rotationSpeed, glowIntensity } = this.options;
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const avgFreq = this.getAverageFrequency() * sensitivity;
+
+    this.rotation += rotationSpeed * 0.01 * (1 + avgFreq / 200);
+
+    // 初始化银河星星
+    while (this.galaxyStars.length < maxParticles * 0.7) {
+      const arm = Math.floor(Math.random() * 4);
+      const distance = Math.random() * Math.min(width, height) * 0.4;
+      const armAngle = (arm / 4) * Math.PI * 2;
+      const spiralAngle = distance * 0.01;
+
+      this.galaxyStars.push({
+        distance,
+        angle: armAngle + spiralAngle + (Math.random() - 0.5) * 0.5,
+        size: 0.5 + Math.random() * 2,
+        brightness: 0.3 + Math.random() * 0.7,
+        hue: 200 + Math.random() * 60,
+        speed: 0.001 + Math.random() * 0.002,
+        offset: Math.random() * Math.PI * 2,
+      });
+    }
+
+    // 绘制银河核心
+    const coreRadius = 20 + (avgFreq / 255) * 20;
+    const coreGrad = this.ctx.createRadialGradient(
+      centerX, centerY, 0,
+      centerX, centerY, coreRadius * 2
+    );
+
+    if (gradient) {
+      coreGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+      coreGrad.addColorStop(0.3, this.hexToRgba(this.options.primaryColor, 0.6));
+      coreGrad.addColorStop(0.6, this.hexToRgba(this.options.secondaryColor, 0.3));
+      coreGrad.addColorStop(1, 'transparent');
+    } else {
+      coreGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+      coreGrad.addColorStop(0.5, this.hexToRgba(this.options.primaryColor, 0.4));
+      coreGrad.addColorStop(1, 'transparent');
+    }
+
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, coreRadius * 2, 0, Math.PI * 2);
+    this.ctx.fillStyle = coreGrad;
+    this.ctx.fill();
+
+    // 更新和绘制星星
+    for (const star of this.galaxyStars) {
+      // 内层转快，外层转慢
+      const speedFactor = 1 - star.distance / (Math.min(width, height) * 0.4);
+      star.angle += star.speed * (1 + speedFactor) * (1 + avgFreq / 200);
+
+      // 添加脉动效果
+      const pulse = Math.sin(this.frameCount * 0.05 + star.offset) * 0.3 + 1;
+
+      const x = centerX + Math.cos(star.angle + this.rotation) * star.distance;
+      const y = centerY + Math.sin(star.angle + this.rotation) * star.distance;
+
+      // 根据距离调整大小和亮度
+      const distanceFactor = 1 - star.distance / (Math.min(width, height) * 0.5);
+      const sizeMultiplier = 0.5 + distanceFactor * 0.5 + (avgFreq / 255) * 0.5;
+      const size = star.size * sizeMultiplier * pulse;
+      const brightness = star.brightness * (0.7 + distanceFactor * 0.3);
+
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, Math.max(0.3, size), 0, Math.PI * 2);
+
+      if (gradient) {
+        this.ctx.fillStyle = `hsla(${star.hue}, 70%, ${60 + brightness * 30}%, ${brightness})`;
+        if (size > 1.5) {
+          this.ctx.shadowColor = `hsl(${star.hue}, 70%, 70%)`;
+          this.ctx.shadowBlur = glowIntensity * 0.5;
+        }
+      } else {
+        this.ctx.fillStyle = this.hexToRgba(this.options.primaryColor, brightness);
+      }
+
+      this.ctx.fill();
+    }
+
+    // 绘制旋臂光晕
+    for (let arm = 0; arm < 4; arm++) {
+      const armAngle = (arm / 4) * Math.PI * 2 + this.rotation;
+
+      this.ctx.beginPath();
+      for (let d = 30; d < Math.min(width, height) * 0.35; d += 5) {
+        const spiralAngle = d * 0.012;
+        const x = centerX + Math.cos(armAngle + spiralAngle) * d;
+        const y = centerY + Math.sin(armAngle + spiralAngle) * d;
+
+        if (d === 30) {
+          this.ctx.moveTo(x, y);
+        } else {
+          this.ctx.lineTo(x, y);
+        }
+      }
+
+      const armHue = 220 + arm * 15;
+      this.ctx.strokeStyle = gradient
+        ? `hsla(${armHue}, 60%, 60%, 0.1)`
+        : this.hexToRgba(this.options.primaryColor, 0.1);
+      this.ctx.lineWidth = 15 + (avgFreq / 255) * 10;
+      this.ctx.lineCap = 'round';
+      this.ctx.stroke();
+    }
+
+    this.ctx.shadowBlur = 0;
+  }
+
+  /**
+   * 获取平均频率
+   */
+  private getAverageFrequency(): number {
+    let sum = 0;
+    for (let i = 0; i < this.dataArray.length; i++) {
+      sum += this.dataArray[i];
+    }
+    return sum / this.dataArray.length;
+  }
+
+  /**
+   * 获取低频（Bass）能量
+   */
+  private getBassFrequency(): number {
+    const bassRange = Math.floor(this.dataArray.length * 0.1);
+    let sum = 0;
+    for (let i = 0; i < bassRange; i++) {
+      sum += this.dataArray[i];
+    }
+    return sum / bassRange;
+  }
+
+  /**
    * 绘制圆角矩形
    */
   private roundRect(x: number, y: number, w: number, h: number, r: number): void {
@@ -604,7 +1238,13 @@ export class AudioVisualizer {
    */
   setType(type: VisualizerType): void {
     this.options.type = type;
-    this.particles = []; // 清除粒子
+    // 清除粒子状态
+    this.particles = [];
+    this.flowParticles = [];
+    this.starParticles = [];
+    this.galaxyStars = [];
+    this.pulseRings = [];
+    this.rotation = 0;
   }
 
   /**
@@ -640,8 +1280,65 @@ export class AudioVisualizer {
     this.stop();
     this.disconnectSource();
     this.particles = [];
+    this.flowParticles = [];
+    this.starParticles = [];
+    this.galaxyStars = [];
+    this.pulseRings = [];
     this.gradientCache = null;
+    this.previousData = null;
   }
+}
+
+/**
+ * 粒子流粒子
+ */
+interface FlowParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  life: number;
+  maxLife: number;
+  hue: number;
+  trail: { x: number; y: number }[];
+}
+
+/**
+ * 星空粒子
+ */
+interface StarParticle {
+  x: number;
+  y: number;
+  z: number;
+  size: number;
+  speed: number;
+  hue: number;
+}
+
+/**
+ * 银河星星
+ */
+interface GalaxyStar {
+  distance: number;
+  angle: number;
+  size: number;
+  brightness: number;
+  hue: number;
+  speed: number;
+  offset: number;
+}
+
+/**
+ * 脉冲环
+ */
+interface PulseRing {
+  radius: number;
+  maxRadius: number;
+  alpha: number;
+  lineWidth: number;
+  hue: number;
+  speed: number;
 }
 
 /**

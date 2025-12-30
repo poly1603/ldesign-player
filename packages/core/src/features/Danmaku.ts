@@ -1,6 +1,7 @@
 /**
  * 弹幕系统
  * 支持滚动弹幕、顶部弹幕、底部弹幕
+ * 优化：使用对象池复用 DOM 元素，CSS transform 动画避免重排
  */
 
 export type DanmakuType = 'scroll' | 'top' | 'bottom';
@@ -41,11 +42,20 @@ export interface DanmakuOptions {
   visible?: boolean;
   /** 弹幕区域高度百分比 (0-1) */
   areaRatio?: number;
+  /** 对象池大小 */
+  poolSize?: number;
 }
 
 interface DanmakuTrack {
   id: number;
   endTime: number;
+}
+
+/** 弹幕元素池项 */
+interface PooledDanmakuElement {
+  element: HTMLDivElement;
+  inUse: boolean;
+  animationId?: number;
 }
 
 export class Danmaku {
@@ -58,16 +68,20 @@ export class Danmaku {
   private trackCount: number;
   private visible: boolean;
   private areaRatio: number;
+  private poolSize: number;
 
   private danmakuContainer: HTMLElement;
   private tracks: DanmakuTrack[] = [];
   private topTracks: DanmakuTrack[] = [];
   private bottomTracks: DanmakuTrack[] = [];
-  private activeDanmaku: Map<string, HTMLElement> = new Map();
+  private activeDanmaku: Map<string, PooledDanmakuElement> = new Map();
+  private elementPool: PooledDanmakuElement[] = [];
   private lastTime = 0;
   private animationId: number | null = null;
   private isPlaying = false;
   private idCounter = 0;
+  private containerWidth = 0;
+  private resizeObserver: ResizeObserver | null = null;
 
   constructor(options: DanmakuOptions) {
     this.container = options.container;
@@ -79,10 +93,93 @@ export class Danmaku {
     this.trackCount = options.trackCount || 8;
     this.visible = options.visible ?? true;
     this.areaRatio = options.areaRatio ?? 0.75;
+    this.poolSize = options.poolSize || 50;
 
     this.createContainer();
     this.initTracks();
+    this.initElementPool();
     this.bindEvents();
+    this.setupResizeObserver();
+  }
+
+  /**
+   * 初始化元素对象池
+   */
+  private initElementPool(): void {
+    for (let i = 0; i < this.poolSize; i++) {
+      const element = this.createDanmakuElement();
+      this.elementPool.push({
+        element,
+        inUse: false,
+      });
+    }
+  }
+
+  /**
+   * 创建弹幕 DOM 元素
+   */
+  private createDanmakuElement(): HTMLDivElement {
+    const el = document.createElement('div');
+    el.className = 'ld-danmaku-item';
+    el.style.cssText = `
+      position: absolute;
+      white-space: nowrap;
+      will-change: transform;
+      pointer-events: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 600;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      visibility: hidden;
+    `;
+    this.danmakuContainer.appendChild(el);
+    return el;
+  }
+
+  /**
+   * 从对象池获取元素
+   */
+  private acquireElement(): PooledDanmakuElement | null {
+    // 优先使用池中空闲元素
+    for (const pooled of this.elementPool) {
+      if (!pooled.inUse) {
+        pooled.inUse = true;
+        return pooled;
+      }
+    }
+    // 池已满，动态创建新元素
+    if (this.elementPool.length < this.poolSize * 2) {
+      const element = this.createDanmakuElement();
+      const pooled: PooledDanmakuElement = { element, inUse: true };
+      this.elementPool.push(pooled);
+      return pooled;
+    }
+    return null;
+  }
+
+  /**
+   * 释放元素回对象池
+   */
+  private releaseElement(pooled: PooledDanmakuElement): void {
+    if (pooled.animationId) {
+      cancelAnimationFrame(pooled.animationId);
+      pooled.animationId = undefined;
+    }
+    pooled.inUse = false;
+    pooled.element.style.visibility = 'hidden';
+    pooled.element.style.transform = '';
+  }
+
+  /**
+   * 设置容器尺寸监听
+   */
+  private setupResizeObserver(): void {
+    this.containerWidth = this.danmakuContainer.clientWidth;
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        this.containerWidth = entry.contentRect.width;
+      }
+    });
+    this.resizeObserver.observe(this.danmakuContainer);
   }
 
   private createContainer(): void {
@@ -172,9 +269,11 @@ export class Danmaku {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
-    // 暂停所有动画
-    this.activeDanmaku.forEach((el) => {
-      el.style.animationPlayState = 'paused';
+    // 暂停所有动画 - 取消 RAF 动画
+    this.activeDanmaku.forEach((pooled) => {
+      if (pooled.animationId) {
+        cancelAnimationFrame(pooled.animationId);
+      }
     });
   }
 
@@ -182,9 +281,7 @@ export class Danmaku {
    * 恢复弹幕
    */
   public resume(): void {
-    this.activeDanmaku.forEach((el) => {
-      el.style.animationPlayState = 'running';
-    });
+    // RAF 动画会在 start() 中重新开始
     this.start();
   }
 
@@ -192,7 +289,9 @@ export class Danmaku {
    * 清空弹幕
    */
   public clear(): void {
-    this.activeDanmaku.forEach((el) => el.remove());
+    this.activeDanmaku.forEach((pooled) => {
+      this.releaseElement(pooled);
+    });
     this.activeDanmaku.clear();
     this.tracks.forEach((t) => (t.endTime = 0));
     this.topTracks.forEach((t) => (t.endTime = 0));
@@ -246,54 +345,118 @@ export class Danmaku {
   }
 
   private renderDanmaku(item: DanmakuItem): void {
-    const el = document.createElement('div');
-    el.className = 'ld-danmaku-item';
+    const pooled = this.acquireElement();
+    if (!pooled) return; // 对象池已满
+
+    const el = pooled.element;
     el.textContent = item.text;
-    el.style.cssText = `
-      position: absolute;
-      white-space: nowrap;
-      color: ${item.color || '#ffffff'};
-      font-size: ${item.fontSize || this.fontSize}px;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-weight: 600;
-    `;
+    el.style.color = item.color || '#ffffff';
+    el.style.fontSize = `${item.fontSize || this.fontSize}px`;
+    el.style.visibility = 'visible';
 
     const type = item.type || 'scroll';
     const trackHeight = this.danmakuContainer.clientHeight / this.trackCount;
+    const containerWidth = this.containerWidth || this.danmakuContainer.clientWidth;
 
     if (type === 'scroll') {
       const track = this.findAvailableTrack(this.tracks);
-      const duration = (this.danmakuContainer.clientWidth + 300) / (this.speed * (item.speed || 1));
+      const speedMultiplier = item.speed || 1;
+      const duration = (containerWidth + 300) / (this.speed * speedMultiplier);
 
       el.style.top = `${track.id * trackHeight}px`;
-      el.style.right = `-300px`;
-      el.style.animation = `danmaku-scroll ${duration}s linear forwards`;
-
+      el.style.left = '';
+      el.style.bottom = '';
+      
+      // 使用 JavaScript 动画 + transform 替代 CSS animation
+      this.animateScrollDanmaku(pooled, item.id!, containerWidth, duration);
       track.endTime = performance.now() + duration * 1000 * 0.3;
     } else if (type === 'top') {
       const track = this.findAvailableTrack(this.topTracks);
       el.style.top = `${track.id * trackHeight}px`;
       el.style.left = '50%';
+      el.style.bottom = '';
       el.style.transform = 'translateX(-50%)';
-      el.style.animation = 'danmaku-static 4s linear forwards';
+      this.animateStaticDanmaku(pooled, item.id!, 4000);
       track.endTime = performance.now() + 4000;
     } else {
       const track = this.findAvailableTrack(this.bottomTracks);
-      el.style.bottom = `${track.id * trackHeight}px`;
+      el.style.top = '';
       el.style.left = '50%';
+      el.style.bottom = `${track.id * trackHeight}px`;
       el.style.transform = 'translateX(-50%)';
-      el.style.animation = 'danmaku-static 4s linear forwards';
+      this.animateStaticDanmaku(pooled, item.id!, 4000);
       track.endTime = performance.now() + 4000;
     }
 
-    this.danmakuContainer.appendChild(el);
-    this.activeDanmaku.set(item.id!, el);
+    this.activeDanmaku.set(item.id!, pooled);
+  }
 
-    el.addEventListener('animationend', () => {
-      el.remove();
-      this.activeDanmaku.delete(item.id!);
-    });
+  /**
+   * 滚动弹幕动画 - 使用 requestAnimationFrame + transform
+   */
+  private animateScrollDanmaku(
+    pooled: PooledDanmakuElement,
+    id: string,
+    containerWidth: number,
+    duration: number
+  ): void {
+    const el = pooled.element;
+    const startX = containerWidth;
+    const endX = -el.offsetWidth - 50;
+    const startTime = performance.now();
+    const durationMs = duration * 1000;
+
+    const animate = (currentTime: number) => {
+      if (!pooled.inUse) return;
+
+      // 如果暂停，保持当前位置不变
+      if (!this.isPlaying) {
+        pooled.animationId = requestAnimationFrame(animate);
+        return;
+      }
+
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / durationMs, 1);
+      const currentX = startX + (endX - startX) * progress;
+
+      el.style.transform = `translateX(${currentX}px)`;
+
+      if (progress < 1) {
+        pooled.animationId = requestAnimationFrame(animate);
+      } else {
+        // 动画结束，释放元素
+        this.releaseElement(pooled);
+        this.activeDanmaku.delete(id);
+      }
+    };
+
+    el.style.transform = `translateX(${startX}px)`;
+    pooled.animationId = requestAnimationFrame(animate);
+  }
+
+  /**
+   * 静态弹幕动画 - 显示固定时间后消失
+   */
+  private animateStaticDanmaku(
+    pooled: PooledDanmakuElement,
+    id: string,
+    duration: number
+  ): void {
+    const startTime = performance.now();
+
+    const checkEnd = (currentTime: number) => {
+      if (!pooled.inUse) return;
+
+      const elapsed = currentTime - startTime;
+      if (elapsed >= duration) {
+        this.releaseElement(pooled);
+        this.activeDanmaku.delete(id);
+      } else {
+        pooled.animationId = requestAnimationFrame(checkEnd);
+      }
+    };
+
+    pooled.animationId = requestAnimationFrame(checkEnd);
   }
 
   private findAvailableTrack(tracks: DanmakuTrack[]): DanmakuTrack {
@@ -310,21 +473,34 @@ export class Danmaku {
   public destroy(): void {
     this.pause();
     this.clear();
+    // 销毁对象池中所有元素
+    this.elementPool.forEach((pooled) => {
+      if (pooled.animationId) {
+        cancelAnimationFrame(pooled.animationId);
+      }
+      pooled.element.remove();
+    });
+    this.elementPool = [];
+    // 停止尺寸监听
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
     this.danmakuContainer.remove();
   }
-}
 
-// 注入弹幕动画样式
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes danmaku-scroll {
-    from { transform: translateX(0); }
-    to { transform: translateX(calc(-100% - 100vw)); }
+  /**
+   * 获取当前活动弹幕数量
+   */
+  public getActiveCount(): number {
+    return this.activeDanmaku.size;
   }
-  @keyframes danmaku-static {
-    0%, 100% { opacity: 1; }
+
+  /**
+   * 获取对象池使用情况
+   */
+  public getPoolStats(): { total: number; inUse: number } {
+    const inUse = this.elementPool.filter((p) => p.inUse).length;
+    return { total: this.elementPool.length, inUse };
   }
-`;
-if (typeof document !== 'undefined') {
-  document.head.appendChild(style);
 }
